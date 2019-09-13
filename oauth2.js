@@ -1,5 +1,5 @@
 let redirectUri = chrome.identity.getRedirectURL('provider_cb');
-let code, state;
+let code, state, track, artist;
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 
@@ -61,7 +61,23 @@ window.onload = function() {
             })
             .then(response => response.json())
             // print name of user's currently playing song
-            .then(data => console.log(data.item.name))
+            .then(data => {
+              track = data.item.name;
+              artist = data.item.artists[0].name;
+
+              // replace spaces with dashes
+              track = track.replace(/\s/g, '-');
+              artist = artist.replace(/\s/g, '-');
+
+              url = `https://genius.com/${artist}-${track}-lyrics`;
+
+              chrome.tabs.create({url: url});
+
+              // use this if I want to get the featured artists
+              // for (let artist of data.item.artists) {
+              //   console.log(artist.name);
+              // }
+            })
           );
 
         // 4. when access token expires, request a refreshed access token
