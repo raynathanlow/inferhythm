@@ -1,0 +1,14 @@
+{
+  "name": "Adepto",
+  "version": "1.0",
+  "description": "Get Genius Lyrics",
+  "permissions": [
+    "identity",
+    "https://accounts.spotify.com/api/token"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "manifest_version": 2
+}
