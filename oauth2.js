@@ -1,5 +1,6 @@
 let redirectUri = chrome.identity.getRedirectURL('provider_cb');
 let code, state, track, artist;
+let sentState = randStr(10); 
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let responseUrl, accessToken, refreshToken;
@@ -15,7 +16,7 @@ window.onload = function() {
       '&response_type=code' +
       '&redirect_uri=' + redirectUri + 
       '&scope=user-read-currently-playing' + 
-      '&state=XXXXXXXXXX', 
+      '&state=' + sentState, 
       interactive: true 
     },
       function(response) {
@@ -31,8 +32,16 @@ window.onload = function() {
         // passed to and from a web application and a server.
         // The query string follows the question mark sign in the URL
 
-        // state = responseUrl.searchParams.get("state");
-        // instead just verify that the state is the same
+        state = responseUrl.searchParams.get("state");
+
+        // verify sent state is the same as the response state 
+        if (state == sentState) {
+          console.log("same state");
+        } else {
+          console.log("different state");
+          console.log("sentState: " + sentState);
+          console.log("response state: " + state);
+        }
       })
   });
 
@@ -112,3 +121,14 @@ window.onload = function() {
       console.log(accessToken);
     });
 };
+
+// https://stackoverflow.com/a/1349426
+function randStr(length) {
+   var result           = '';
+   var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+   var charactersLength = characters.length;
+   for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+   }
+   return result;
+}
