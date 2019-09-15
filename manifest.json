@@ -4,6 +4,7 @@
   "description": "Get Genius Lyrics",
   "permissions": [
     "identity",
+    "cookies",
     "https://accounts.spotify.com/api/token"
   ],
   "background": {

@@ -25,22 +25,22 @@ window.onload = function() {
         // URL() constructor returns a URL object which represents the URL 
         // defined by its parameters
         responseUrl = new URL(response);
-        code = responseUrl.searchParams.get("code");
+        code = responseUrl.searchParams.get('code');
         // URLSearchParams: an interface with utility methods that work with
         // the query string of a URL
         // A query string is the part of the URL that stores data which can be
         // passed to and from a web application and a server.
         // The query string follows the question mark sign in the URL
 
-        state = responseUrl.searchParams.get("state");
+        state = responseUrl.searchParams.get('state');
 
         // verify sent state is the same as the response state 
         if (state == sentState) {
-          console.log("same state");
+          console.log('same state');
         } else {
-          console.log("different state");
-          console.log("sentState: " + sentState);
-          console.log("response state: " + state);
+          console.log('different state');
+          console.log('sentState: ' + sentState);
+          console.log('response state: ' + state);
         }
       })
   });
@@ -72,7 +72,29 @@ window.onload = function() {
         refreshToken = data.refresh_token;
         console.log(accessToken);
         console.log(refreshToken);
+
+        // set accessToken cookie
+        chrome.cookies.set({
+          // the url has to be the current page?
+          // not the url of where you got the data
+          url: 'https://accounts.spotify.com/api/token',
+          name: 'accessToken',
+          value: accessToken
+        }, function(cookie) {
+          console.log('accessToken cookie set');
         });
+
+        // set refreshToken cookie 
+        chrome.cookies.set({
+          // the url has to be the current page?
+          // not the url of where you got the data
+          url: 'https://accounts.spotify.com/api/token',
+          name: 'refreshToken',
+          value: refreshToken
+        }, function(cookie) {
+          console.log('refreshToken cookie set');
+        });
+      });
   });
 
     document.querySelector('#request-data').addEventListener('click', function() {
@@ -96,6 +118,22 @@ window.onload = function() {
           url = `https://genius.com/${artist}-${track}-lyrics`;
 
           chrome.tabs.create({url: url});
+
+          // get accessToken cookie
+          chrome.cookies.get({
+            url: 'https://accounts.spotify.com/api/token',
+            name: 'accessToken'
+          }, function(cookieArray) {
+            console.log(cookieArray.value);
+          });
+
+          // get refreshToken cookie
+          chrome.cookies.get({
+            url: 'https://accounts.spotify.com/api/token',
+            name: 'refreshToken'
+          }, function(cookieArray) {
+            console.log(cookieArray.value);
+          });
 
           // use this if I want to get the featured artists
           // for (let artist of data.item.artists) {
