@@ -3,7 +3,7 @@ let code, state, track, artist;
 let sentState = randStr(10); 
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-let responseUrl, accessToken, refreshToken;
+let responseUrl, accessToken, refreshToken, expirationDate;
 
 window.onload = function() {
 
@@ -13,11 +13,10 @@ window.onload = function() {
     name: 'accessToken'
   }, cookieArray => {
     accessToken = cookieArray.value
-    console.log(accessToken);
+    expirationDate = cookieArray.expirationDate;
   });
 
   document.querySelector('#log-in').addEventListener('click', function() {
-    console.log('log-in');
     // 1. request application request authorization
     // authorization code is returned if user logs in and authorizes access
     chrome.identity.launchWebAuthFlow({
@@ -45,7 +44,7 @@ window.onload = function() {
 
       // verify sent state is the same as the response state 
       if (state == sentState) {
-        console.log('same state');
+        // console.log('same state');
       } else {
         console.log('different state');
         console.log('sentState: ' + sentState);
@@ -55,7 +54,6 @@ window.onload = function() {
   });
 
   document.querySelector('#request-a-r').addEventListener('click', function() {
-    console.log('request-a-r');
     // 2. request refresh and access tokens
     // Spotify returns access and refresh tokens
 
@@ -79,25 +77,11 @@ window.onload = function() {
       .then(data => {
         accessToken = data.access_token;
         refreshToken = data.refresh_token;
-        console.log(accessToken);
-        // console.log(refreshToken);
 
-        // set accessToken cookie
-        chrome.cookies.set({
-          // the url has to be the current page?
-          // not the url of where you got the data
-          url: 'https://accounts.spotify.com/api/token',
-          name: 'accessToken',
-          value: accessToken,
-          secure: true,
-          httpOnly: true,
-          sameSite: 'strict',
-        });
+        setAccessToken();
 
         // set refreshToken cookie 
         chrome.cookies.set({
-          // the url has to be the current page?
-          // not the url of where you got the data
           url: 'https://accounts.spotify.com/api/token',
           name: 'refreshToken',
           value: refreshToken,
@@ -109,51 +93,80 @@ window.onload = function() {
   });
 
   document.querySelector('#request-data').addEventListener('click', function() {
-    console.log('request-data');
-    fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + accessToken
-      }
-    })
-    // check that a valid token was used
-      .then(response => response.json())
-    // print name of user's currently playing song
-      .then(data => {
-        track = data.item.name;
-        artist = data.item.artists[0].name;
-
-        // replace spaces with dashes
-        track = track.replace(/\s/g, '-');
-        artist = artist.replace(/\s/g, '-');
-
-        url = `https://genius.com/${artist}-${track}-lyrics`;
-
-        chrome.tabs.create({url: url});
-
-        // use this if I want to get the featured artists
-        // for (let artist of data.item.artists) {
-        //   console.log(artist.name);
-        // }
-      });
-  });
-
-  document.querySelector('#request-r').addEventListener('click', function() {
-    fetch('https://accounts.spotify.com/api/token',{ 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-        // btoa() encodes string in base-64
-      },
-      body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-      // body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + redirectUri + '&scope=user-read-currently-playing'
-    })
-      .then(response => response.json())
-      .then(data => accessToken = data.access_token);
-    console.log(accessToken);
+    // check if access token is still valid based on cookie's expirationDate
+    // subtract 1 minute to give time to make GET request with access token
+    // that will expire soon
+    if (Date.now() < expirationDate - 60000) {
+      requestTrack();
+    } else {
+      // request refreshed access token
+      fetch('https://accounts.spotify.com/api/token',{ 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+          // btoa() encodes string in base-64
+        },
+        body: 'grant_type=refresh_token&refresh_token=' + refreshToken
+      })
+        .then(response => response.json())
+        .then(data => {
+          accessToken = data.access_token;
+          // replace cookie
+          setAccessToken();
+        })
+        // request track with refreshed access token
+        .then(requestTrack());
+    }
   });
 };
+
+function setAccessToken() {
+  // add one hour to current time to set as expirationDate of cookie
+  // 3600000ms in an hour
+  let expirationDate = Date.now() + 3600000;
+
+  // set accessToken cookie
+  chrome.cookies.set({
+    url: 'https://accounts.spotify.com/api/token',
+    name: 'accessToken',
+    value: accessToken,
+    secure: true,
+    httpOnly: true,
+    sameSite: 'strict',
+    expirationDate: expirationDate
+  });
+}
+
+function requestTrack() {
+  console.log('request track');
+  fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
+    method: 'GET',
+    headers: {
+      'Authorization': 'Bearer ' + accessToken
+    }
+  })
+  // check that a valid token was used
+    .then(response => response.json())
+  // print name of user's currently playing song
+    .then(data => {
+      track = data.item.name;
+      artist = data.item.artists[0].name;
+
+      // replace spaces with dashes
+      track = track.replace(/\s/g, '-');
+      artist = artist.replace(/\s/g, '-');
+
+      url = `https://genius.com/${artist}-${track}-lyrics`;
+
+      chrome.tabs.create({url: url});
+
+      // use this if I want to get the featured artists
+      // for (let artist of data.item.artists) {
+      //   console.log(artist.name);
+      // }
+    });
+}
 
 // https://stackoverflow.com/a/1349426
 function randStr(length) {
