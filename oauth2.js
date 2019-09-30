@@ -5,44 +5,7 @@ let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let responseUrl, accessToken, refreshToken, expirationDate;
 
-chrome.browserAction.onClicked.addListener((tab) => {
-  // redirect to Genius page
-  console.log("browserAction");
-  if (Date.now() < expirationDate - 60000) {
-    requestTrack();
-  } else {
-    // request refreshed access token
-    fetch('https://accounts.spotify.com/api/token',{ 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-        // btoa() encodes string in base-64
-      },
-      body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-    })
-      .then(response => response.json())
-      .then(data => {
-        accessToken = data.access_token;
-        // replace cookie
-        setAccessToken();
-      })
-    // request track with refreshed access token
-      .then(requestTrack());
-  }
-});
-
 window.onload = function() {
-
-  // get accessToken cookie
-  chrome.cookies.get({
-    url: 'https://accounts.spotify.com/api/token',
-    name: 'accessToken'
-  }, cookieArray => {
-    accessToken = cookieArray.value
-    expirationDate = cookieArray.expirationDate;
-  });
-
   document.querySelector('#log-in').addEventListener('click', function() {
     // 1. request application request authorization
     // authorization code is returned if user logs in and authorizes access
@@ -105,6 +68,8 @@ window.onload = function() {
         accessToken = data.access_token;
         refreshToken = data.refresh_token;
 
+        console.log('accessToken: ' + accessToken);
+
         setAccessToken();
 
         // set refreshToken cookie 
@@ -117,34 +82,6 @@ window.onload = function() {
           sameSite: 'strict'
         });
       });
-  });
-
-  document.querySelector('#request-data').addEventListener('click', function() {
-    // check if access token is still valid based on cookie's expirationDate
-    // subtract 1 minute to give time to make GET request with access token
-    // that will expire soon
-    if (Date.now() < expirationDate - 60000) {
-      requestTrack();
-    } else {
-      // request refreshed access token
-      fetch('https://accounts.spotify.com/api/token',{ 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-          // btoa() encodes string in base-64
-        },
-        body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-      })
-        .then(response => response.json())
-        .then(data => {
-          accessToken = data.access_token;
-          // replace cookie
-          setAccessToken();
-        })
-      // request track with refreshed access token
-        .then(requestTrack());
-    }
   });
 };
 
@@ -165,35 +102,6 @@ function setAccessToken() {
   });
 }
 
-function requestTrack() {
-  console.log('request track');
-  fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
-    method: 'GET',
-    headers: {
-      'Authorization': 'Bearer ' + accessToken
-    }
-  })
-  // check that a valid token was used
-    .then(response => response.json())
-  // print name of user's currently playing song
-    .then(data => {
-      track = data.item.name;
-      artist = data.item.artists[0].name;
-
-      // replace spaces with dashes
-      track = track.replace(/\s/g, '-');
-      artist = artist.replace(/\s/g, '-');
-
-      url = `https://genius.com/${artist}-${track}-lyrics`;
-
-      chrome.tabs.create({url: url});
-
-      // use this if I want to get the featured artists
-      // for (let artist of data.item.artists) {
-      //   console.log(artist.name);
-      // }
-    });
-}
 
 // https://stackoverflow.com/a/1349426
 function randStr(length) {
