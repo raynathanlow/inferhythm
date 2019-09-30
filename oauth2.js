@@ -5,6 +5,33 @@ let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let responseUrl, accessToken, refreshToken, expirationDate;
 
+chrome.browserAction.onClicked.addListener((tab) => {
+  // redirect to Genius page
+  console.log("browserAction");
+  if (Date.now() < expirationDate - 60000) {
+    requestTrack();
+  } else {
+    // request refreshed access token
+    fetch('https://accounts.spotify.com/api/token',{ 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+        // btoa() encodes string in base-64
+      },
+      body: 'grant_type=refresh_token&refresh_token=' + refreshToken
+    })
+      .then(response => response.json())
+      .then(data => {
+        accessToken = data.access_token;
+        // replace cookie
+        setAccessToken();
+      })
+    // request track with refreshed access token
+      .then(requestTrack());
+  }
+});
+
 window.onload = function() {
 
   // get accessToken cookie
@@ -115,7 +142,7 @@ window.onload = function() {
           // replace cookie
           setAccessToken();
         })
-        // request track with refreshed access token
+      // request track with refreshed access token
         .then(requestTrack());
     }
   });

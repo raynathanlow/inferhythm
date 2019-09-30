@@ -11,5 +11,8 @@
     "scripts": ["background.js"],
     "persistent": false
   },
+  "browser_action": {
+
+  },
   "manifest_version": 2
 }
