@@ -8,46 +8,56 @@ chrome.runtime.onInstalled.addListener(function() {
 
 chrome.browserAction.onClicked.addListener(() => {
   // redirect to Genius page
-
-  // get accessToken, expirationDate
-  chrome.cookies.get({
-    url: 'https://accounts.spotify.com/api/token',
-    name: 'accessToken'
+  chrome.cookies.getAll({
+    url: 'https://accounts.spotify.com/api/token'
   }, cookieArray => {
-    accessToken = cookieArray.value
-    expirationDate = cookieArray.expirationDate;
-  });
+    // get token information
+    for (let cookie of cookieArray) {
+      if (cookie.name == 'accessToken') {
+        accessToken = cookie.value;
+        expirationDate = cookie.expirationDate;
+        console.log('accessToken ED: ' + new Date(cookie.expirationDate));
+      }
+      // refreshToken
+      if (cookie.name == 'refreshToken') {
+        refreshToken = cookie.value;
+        console.log('refreshToken ED: ' + new Date(cookie.expirationDate));
+      }
+    }
 
-  // get refreshToken
-  chrome.cookies.get({
-    url: 'https://accounts.spotify.com/api/token',
-    name: 'refreshToken'
-  }, cookieArray => {
-    refreshToken = cookieArray.value
-  });
+    // request track information if access token is still valid
+    // otherwise, refresh access token and then request track information
+    if (Date.now() < expirationDate - 60000) {
+      console.log('accessToken is valid');
+      console.log('Date.now(): ' + Date.now());
+      console.log('expirationDate: ' + new Date(expirationDate));
+      requestTrack();
+    } else {
+      console.log('accessToken has expired');
+      console.log('Date.now(): ' + Date.now());
+      console.log('expirationDate: ' + new Date(expirationDate));
 
-  if (Date.now() < expirationDate - 60000) {
-    requestTrack();
-  } else {
-    // request refreshed access token
-    fetch('https://accounts.spotify.com/api/token',{ 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-        // btoa() encodes string in base-64
-      },
-      body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-    })
-      .then(response => response.json())
-      .then(data => {
-        accessToken = data.access_token;
-        // replace cookie
-        setAccessToken();
+      // request refreshed access token
+      fetch('https://accounts.spotify.com/api/token',{ 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+          // btoa() encodes string in base-64
+        },
+        body: 'grant_type=refresh_token&refresh_token=' + refreshToken
       })
-    // request track with refreshed access token
-      .then(requestTrack());
-  }
+        .then(response => response.json())
+        .then(data => {
+          accessToken = data.access_token;
+          // replace cookie
+          setAccessToken(accessToken);
+        })
+      // request track with refreshed access token
+        .then(requestTrack());
+    }
+  });
+
 });
 
 function requestTrack() {
@@ -80,7 +90,8 @@ function requestTrack() {
     });
 }
 
-function setAccessToken() {
+function setAccessToken(token) {
+  console.log('setAccessToken');
   // add one hour to current time to set as expirationDate of cookie
   // 3600000ms in an hour
   let expirationDate = Date.now() + 3600000;
@@ -89,7 +100,7 @@ function setAccessToken() {
   chrome.cookies.set({
     url: 'https://accounts.spotify.com/api/token',
     name: 'accessToken',
-    value: accessToken,
+    value: token,
     secure: true,
     httpOnly: true,
     sameSite: 'strict',

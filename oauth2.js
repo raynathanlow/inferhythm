@@ -19,7 +19,8 @@ window.onload = function() {
       interactive: true 
     }, response => {
       // get the authorization code from the response
-      // https://stackoverflow.com/questions/979975/how-to-get-the-value-from-the-get-parameters
+      // https://stackoverflow.com/questions/979975/
+        // how-to-get-the-value-from-the-get-parameters
       // URL() constructor returns a URL object which represents the URL 
       // defined by its parameters
       responseUrl = new URL(response);
@@ -34,7 +35,7 @@ window.onload = function() {
 
       // verify sent state is the same as the response state 
       if (state == sentState) {
-        // console.log('same state');
+        console.log('same state');
       } else {
         console.log('different state');
         console.log('sentState: ' + sentState);
@@ -54,7 +55,8 @@ window.onload = function() {
         'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
         // btoa() encodes string in base-64
       },
-      body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + redirectUri + '&scope=user-read-currently-playing'
+      body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + 
+        redirectUri + '&scope=user-read-currently-playing'
     })
     // load it as a JSON
     // consider when no available devices are found, request will return
@@ -72,6 +74,13 @@ window.onload = function() {
 
         setAccessToken();
 
+        // refresh token doesn't actually expire, but
+        // setting the refresh token to "expire" after one year, for now
+        // this is so that the user doesn't have to reauthenticate so often
+        // maybe if the user chooses not to keep logged in, then this cookie
+        // should expire when the browser is closed, aka no expiration date
+        let expirationDate = new Date(Date.now());
+        expirationDate.setFullYear(expirationDate.getFullYear() + 1);
         // set refreshToken cookie 
         chrome.cookies.set({
           url: 'https://accounts.spotify.com/api/token',
@@ -79,9 +88,10 @@ window.onload = function() {
           value: refreshToken,
           secure: true,
           httpOnly: true,
-          sameSite: 'strict'
+          sameSite: 'strict',
+          expirationDate: Date.parse(expirationDate)
         });
-      });
+      })
   });
 };
 
@@ -89,6 +99,8 @@ function setAccessToken() {
   // add one hour to current time to set as expirationDate of cookie
   // 3600000ms in an hour
   let expirationDate = Date.now() + 3600000;
+
+  console.log('expirationDate: ' + new Date(expirationDate));
 
   // set accessToken cookie
   chrome.cookies.set({
@@ -105,10 +117,10 @@ function setAccessToken() {
 
 // https://stackoverflow.com/a/1349426
 function randStr(length) {
-  var result           = '';
-  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( var i = 0; i < length; i++ ) {
+  let result           = '';
+  let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let charactersLength = characters.length;
+  for ( let i = 0; i < length; i++ ) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
