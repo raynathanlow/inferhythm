@@ -5,7 +5,8 @@
   "permissions": [
     "identity",
     "cookies",
-    "https://accounts.spotify.com/api/token"
+    "https://accounts.spotify.com/api/token",
+    "https://api.genius.com/search"
   ],
   "background": {
     "scripts": ["background.js"],

@@ -2,6 +2,8 @@ let accessToken, refreshToken, expirationDate;
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 
+let geniusToken = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+
 chrome.runtime.onInstalled.addListener(function() {
   chrome.tabs.create({url: 'index.html'});
 });
@@ -62,6 +64,12 @@ chrome.browserAction.onClicked.addListener(() => {
 
 function requestTrack() {
   console.log('request track');
+  let track, artist, query;
+
+  // track = '21 Savage';
+  // artist = 'a lot';
+  // query = encodeURIComponent(track + ' ' + artist);
+
   fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
     method: 'GET',
     headers: {
@@ -76,18 +84,44 @@ function requestTrack() {
       artist = data.item.artists[0].name;
 
       // replace spaces with dashes
-      track = track.replace(/\s/g, '-');
-      artist = artist.replace(/\s/g, '-');
+      // track = track.replace(/\s/g, '-');
+      // artist = artist.replace(/\s/g, '-');
 
-      url = `https://genius.com/${artist}-${track}-lyrics`;
+      // url = `https://genius.com/${artist}-${track}-lyrics`;
 
-      chrome.tabs.create({url: url});
+      // chrome.tabs.create({url: url});
+
+      // maybe try to remove anything with braces? it doesn't seem work the best?
+
+      query = encodeURIComponent(track + ' ' + artist);
+
+      fetch('https://api.genius.com/search?q=' + query,{ 
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + geniusToken
+        }
+      })
+        .then(response => response.json())
+        .then(data => {
+          let hits = data.response.hits;
+
+          // url of first result
+          url = hits[0].result.url;
+
+          chrome.tabs.create({url: url});
+
+          // title of result
+          // console.log(hits[0].result.full_title);
+        });
 
       // use this if I want to get the featured artists
       // for (let artist of data.item.artists) {
       //   console.log(artist.name);
       // }
     });
+
+  // search through Genius API
 }
 
 function setAccessToken(token) {
