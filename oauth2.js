@@ -58,13 +58,6 @@ window.onload = function() {
       body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + 
         redirectUri + '&scope=user-read-currently-playing'
     })
-    // load it as a JSON
-    // consider when no available devices are found, request will return
-    // a 200 OK response but with no data
-    // consider when no track is currently playing, request will return a
-    // 204 NO CONTENT
-    // consider when the user is not playing anything
-    // according to the docs, the request will return a 204 NO CONTENT
       .then(response => response.json())
       .then(data => {
         accessToken = data.access_token;

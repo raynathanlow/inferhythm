@@ -1,8 +1,8 @@
 let accessToken, refreshToken, expirationDate;
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-let geniusToken = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX;
+let geniusToken = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 
 chrome.runtime.onInstalled.addListener(function() {
   chrome.tabs.create({url: 'index.html'});
@@ -18,26 +18,26 @@ chrome.browserAction.onClicked.addListener(() => {
       if (cookie.name == 'accessToken') {
         accessToken = cookie.value;
         expirationDate = cookie.expirationDate;
-        console.log('accessToken ED: ' + new Date(cookie.expirationDate));
+        // console.log('accessToken ED: ' + new Date(cookie.expirationDate));
       }
       // refreshToken
       if (cookie.name == 'refreshToken') {
         refreshToken = cookie.value;
-        console.log('refreshToken ED: ' + new Date(cookie.expirationDate));
+        // console.log('refreshToken ED: ' + new Date(cookie.expirationDate));
       }
     }
 
     // request track information if access token is still valid
     // otherwise, refresh access token and then request track information
     if (Date.now() < expirationDate - 60000) {
-      console.log('accessToken is valid');
-      console.log('Date.now(): ' + Date.now());
-      console.log('expirationDate: ' + new Date(expirationDate));
+      // console.log('accessToken is valid');
+      // console.log('Date.now(): ' + Date.now());
+      // console.log('expirationDate: ' + new Date(expirationDate));
       requestTrack();
     } else {
-      console.log('accessToken has expired');
-      console.log('Date.now(): ' + Date.now());
-      console.log('expirationDate: ' + new Date(expirationDate));
+      // console.log('accessToken has expired');
+      // console.log('Date.now(): ' + Date.now());
+      // console.log('expirationDate: ' + new Date(expirationDate));
 
       // request refreshed access token
       fetch('https://accounts.spotify.com/api/token',{ 
@@ -63,12 +63,8 @@ chrome.browserAction.onClicked.addListener(() => {
 });
 
 function requestTrack() {
-  console.log('request track');
+  // console.log('request track');
   let track, artist, query;
-
-  // track = '21 Savage';
-  // artist = 'a lot';
-  // query = encodeURIComponent(track + ' ' + artist);
 
   fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
     method: 'GET',
@@ -77,51 +73,56 @@ function requestTrack() {
     }
   })
   // check that a valid token was used
-    .then(response => response.json())
-  // print name of user's currently playing song
-    .then(data => {
-      track = data.item.name;
-      artist = data.item.artists[0].name;
+  // do something when token is invalid
+    .then(response => {
+      // if access token is invalid
+      if (response.status == 401) {
+        console.log('Invalid access token');
+      } else if (response.status == 200) {
+        // if response has data populated, return response.json() for further processing
+        response.clone().text().then(function(text) {
+          // console.log(text.length);
+          if (text.length > 0) {
+            // console.log('Data exists. Returning JSON...');
+            return response.clone().json();
+            // else if there is no data populated, there are no available devices found
+          } else { 
+            console.log('No available devices are found.');
+          }
+        })
+          .then(data => {
+            // use returned response.clone.json()
+            // console.log('Searching for track...');
+            track = data.item.name;
+            artist = data.item.artists[0].name;
 
-      // replace spaces with dashes
-      // track = track.replace(/\s/g, '-');
-      // artist = artist.replace(/\s/g, '-');
+            query = encodeURIComponent(track + ' ' + artist);
 
-      // url = `https://genius.com/${artist}-${track}-lyrics`;
+            fetch('https://api.genius.com/search?q=' + query,{ 
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + geniusToken
+              }
+            })
+              .then(response => response.json())
+              .then(data => {
+                // TODO: handle what happens when there are no hits
+                let hits = data.response.hits;
 
-      // chrome.tabs.create({url: url});
+                // url of first result
+                url = hits[0].result.url;
 
-      // maybe try to remove anything with braces? it doesn't seem work the best?
+                chrome.tabs.create({url: url});
 
-      query = encodeURIComponent(track + ' ' + artist);
-
-      fetch('https://api.genius.com/search?q=' + query,{ 
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + geniusToken
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          let hits = data.response.hits;
-
-          // url of first result
-          url = hits[0].result.url;
-
-          chrome.tabs.create({url: url});
-
-          // title of result
-          // console.log(hits[0].result.full_title);
-        });
-
-      // use this if I want to get the featured artists
-      // for (let artist of data.item.artists) {
-      //   console.log(artist.name);
-      // }
-    });
-
-  // search through Genius API
+                // title of result
+                // console.log(hits[0].result.full_title);
+              });
+          });
+      } else if (response.status == 204) {
+        console.log('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
+      } 
+    })
 }
 
 function setAccessToken(token) {
