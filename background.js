@@ -1,6 +1,6 @@
 let accessToken, refreshToken, expirationDate;
 let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
 
 let geniusToken = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 
@@ -64,7 +64,8 @@ chrome.browserAction.onClicked.addListener(() => {
 
 function requestTrack() {
   // console.log('request track');
-  let track, artist, query;
+  let track, primaryArtist, query;
+  let artists = [];
 
   fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
     method: 'GET',
@@ -93,10 +94,33 @@ function requestTrack() {
           .then(data => {
             // use returned response.clone.json()
             // console.log('Searching for track...');
-            track = data.item.name;
-            artist = data.item.artists[0].name;
+            // console.log(data);
 
-            query = encodeURIComponent(track + ' ' + artist);
+            // matches text in parentheses with feat/ft and ignores any right 
+            // parentheses within it
+            // matches '-'  and anything after it
+            let regexp = /[(\[](feat|ft)[^)\]]*[)\]]|- .*/g;
+
+            // clean up track title with regex
+            track = data.item.name;
+            track = track.replace(regexp, '');
+
+            primaryArtist = data.item.artists[0].name;
+
+            // console.log('primaryArtist: ' + primaryArtist);
+
+            // add all of the artists to the query
+            for (let artist of data.item.artists) {
+              // combine artist names to a variable to add to query
+              artists += artist.name + ' ';
+            }
+
+            // console.log('track: ' + track);
+            // console.log('artists: ' + artists);
+
+            query = encodeURIComponent(track + ' ' + artists);
+
+            // console.log('query: ' + query);
 
             fetch('https://api.genius.com/search?q=' + query,{ 
               method: 'GET',
@@ -110,8 +134,24 @@ function requestTrack() {
                 // TODO: handle what happens when there are no hits
                 let hits = data.response.hits;
 
-                // url of first result
-                url = hits[0].result.url;
+                // console.log(hits);
+
+                // console.log(hits[0].result.primary_artist.name);
+
+                // ignore hits where primary artist is not the primary artist listed in Spotify
+                // some hits are playlists where the primary artist is Spotify
+                // this may be problematic if the artist name in Spotify doesn't match
+                // the one on Genius
+                // Might just want to exclude hits that are by Spotify and that's it
+                for (let i = 0; i < hits.length; i++) {
+                  if (hits[i].result.primary_artist.name != primaryArtist) {
+                    url = hits[i + 1].result.url;
+                  } else {
+                    // url of first result
+                    url = hits[i].result.url;
+                    break;
+                  }
+                }
 
                 chrome.tabs.create({url: url});
 
