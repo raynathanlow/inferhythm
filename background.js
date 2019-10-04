@@ -13,6 +13,8 @@ chrome.browserAction.onClicked.addListener(() => {
   chrome.cookies.getAll({
     url: 'https://accounts.spotify.com/api/token'
   }, cookieArray => {
+    refreshToken = accessToken = expirationDate = '';
+
     // get token information
     for (let cookie of cookieArray) {
       if (cookie.name == 'accessToken') {
@@ -29,34 +31,40 @@ chrome.browserAction.onClicked.addListener(() => {
 
     // request track information if access token is still valid
     // otherwise, refresh access token and then request track information
-    if (Date.now() < expirationDate - 60000) {
-      // console.log('accessToken is valid');
-      // console.log('Date.now(): ' + Date.now());
-      // console.log('expirationDate: ' + new Date(expirationDate));
+    if (Date.now() < expirationDate - 60000 && accessToken) {
+      console.log('accessToken is valid');
+      console.log('Date.now(): ' + Date.now());
+      console.log('expirationDate: ' + new Date(expirationDate));
       requestTrack();
     } else {
-      // console.log('accessToken has expired');
-      // console.log('Date.now(): ' + Date.now());
-      // console.log('expirationDate: ' + new Date(expirationDate));
+      console.log('accessToken has expired or there is no accessToken');
+      console.log('Date.now(): ' + Date.now());
+      console.log('expirationDate: ' + new Date(expirationDate));
 
-      // request refreshed access token
-      fetch('https://accounts.spotify.com/api/token',{ 
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-          // btoa() encodes string in base-64
-        },
-        body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-      })
-        .then(response => response.json())
-        .then(data => {
-          accessToken = data.access_token;
-          // replace cookie
-          setAccessToken(accessToken);
+      if (refreshToken) {
+        // request refreshed access token
+        fetch('https://accounts.spotify.com/api/token',{ 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+            // btoa() encodes string in base-64
+          },
+          body: 'grant_type=refresh_token&refresh_token=' + refreshToken
         })
-      // request track with refreshed access token
-        .then(requestTrack());
+          .then(response => response.json())
+          .then(data => {
+            accessToken = data.access_token;
+
+            // replace cookie
+            setAccessToken(accessToken);
+          })
+        // request track with refreshed access token
+          .then(requestTrack());
+      } else {
+        console.log('no refresh token to refresh access token, authenticate again');
+        // launch authentication again
+      }
     }
   });
 
