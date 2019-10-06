@@ -140,22 +140,62 @@ function requestTrack() {
             if (artists.length > 1) {
               searchAll(queryFirst, queryAll)
                 .then(data => {
-                  console.log(data);
+                  // show on popup.js
+                  updatePopup(data);
                 })
                 .catch(err => console.log(err));
             } else {
               // search(queryFirst).catch(err => console.log(err));
               search(queryFirst)
                 .then(data => {
-                  console.log(data)
+                  updatePopup(data);
                 })
                 .catch(err => console.log(err));
             }
+
+            // update list of results
+            // for (let hit of hits) {
+            //   let list = document.querySelector('#hits-first-artist');
+            //   list.appendChild();
+            // }
           });
       } else if (response.status == 204) {
         console.log('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
       } 
     });
+}
+
+function updatePopup(data) {
+  console.log(data);
+  // get #hits
+  let html = '';
+  for (let hit of data) {
+    html +=
+      `<li>
+        <a class="hit" target="_blank" rel="noopener noreferrer" href="${hit.result.url}">
+          <img src="${hit.result.song_art_image_thumbnail_url}">
+          <div class="text">
+            <div>
+              <div class="title">${hit.result.title}</div>
+              <div class="name">${hit.result.primary_artist.name}</div>
+            </div>
+          `;
+    if (typeof hit.result.stats.pageviews !== 'undefined') {
+      // eye icon from Genius.com
+      html += `<div class="pageviews">
+      <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
+              ${hit.result.stats.pageviews}
+            </div>
+          </div>
+        </a>
+      </li>`;
+    } else {
+      html += `</div>
+        </a>
+      </li>`;
+    }
+  }
+  document.getElementById('hits').innerHTML = html;
 }
 
 function search(query) {
