@@ -143,14 +143,14 @@ function requestTrack() {
                   // show on popup.js
                   updatePopup(data);
                 })
-                .catch(err => console.log(err));
+                .catch(err => console.log('searchAll err:', err));
             } else {
               // search(queryFirst).catch(err => console.log(err));
               search(queryFirst)
                 .then(data => {
                   updatePopup(data);
                 })
-                .catch(err => console.log(err));
+                .catch(err => console.log('search err:', err));
             }
 
             // update list of results
@@ -172,27 +172,27 @@ function updatePopup(data) {
   for (let hit of data) {
     html +=
       `<li>
-        <a class="hit" target="_blank" rel="noopener noreferrer" href="${hit.result.url}">
-          <img src="${hit.result.song_art_image_thumbnail_url}">
-          <div class="text">
-            <div>
-              <div class="title">${hit.result.title}</div>
-              <div class="name">${hit.result.primary_artist.name}</div>
-            </div>
-          `;
+      <a class="hit" target="_blank" rel="noopener noreferrer" href="${hit.result.url}">
+      <img src="${hit.result.song_art_image_thumbnail_url}">
+      <div class="text">
+      <div>
+      <div class="title">${hit.result.title}</div>
+      <div class="name">${hit.result.primary_artist.name}</div>
+      </div>
+      `;
     if (typeof hit.result.stats.pageviews !== 'undefined') {
       // eye icon from Genius.com
       html += `<div class="pageviews">
-      <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
-              ${hit.result.stats.pageviews}
-            </div>
-          </div>
+        <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
+        ${hit.result.stats.pageviews}
+        </div>
+        </div>
         </a>
-      </li>`;
+        </li>`;
     } else {
       html += `</div>
         </a>
-      </li>`;
+        </li>`;
     }
   }
   document.getElementById('hits').innerHTML = html;
@@ -220,13 +220,13 @@ function search(query) {
         //   console.log(hit.result.id);
         // }
 
-        if (hits.length > 0) {
-          resolve(hits);
-        } else {
-          reject("No results");
-        }
+        //if (hits.length > 0) {
+        resolve(hits);
+        // } else {
+        //   reject("No hits");
+        // }
       })
-     .catch(error => console.log('error is', error));
+      .catch(error => console.log('error is', error));
   });
 }
 
@@ -259,11 +259,19 @@ function searchAll(query1, query2) {
         // }
         // console.log(temp);
 
-        // alternate adding hits into a new array
-        // https://stackoverflow.com/a/13253941
-        combined = hits1.reduce(function(arr, v, i) {
-          return arr.concat(v, hits2[i]); 
-        }, []);
+        console.log('hits1: ' + hits1.length);
+        console.log('hits2: ' + hits2.length);
+
+        // combine arrays based on array with greater length
+        if (hits1.length > hits2.length) {
+          combined = alternateMerge(hits1, hits2);
+        } else if (hits2.length > hits1.length) {
+          combined = alternateMerge(hits2, hits1);
+        } else { // just use first one
+          combined = alternateMerge(hits1, hits2);
+        }
+
+        console.log(combined);
 
         // remove undefined values since sometimes hits1, hits2 may not be same legnth
         // Boolean is there to remove any falsy values
@@ -284,6 +292,7 @@ function searchAll(query1, query2) {
         });
 
         console.log(finalHits.length);
+
         // return combined list
         if (finalHits.length > 0) {
           resolve(finalHits);
@@ -300,14 +309,19 @@ function searchAll(query1, query2) {
         // console.log(finalHits.length);
       })
       // if only query1 works
-      .catch(() => {
-        resolve(hits1);
-      });
     })
     // .catch(error => console.log('error is', error));
     // if query1 fails, search for query2
-    .catch(() => search(query2));
+    // .catch(() => search(query2));
   });
+}
+
+function alternateMerge(arr1, arr2) {
+  // alternate adding hits into a new array
+  // https://stackoverflow.com/a/13253941
+  return combined = arr1.reduce(function(arr, v, i) {
+    return arr.concat(v, arr2[i]); 
+  }, []);
 }
 
 function setAccessToken(token) {
