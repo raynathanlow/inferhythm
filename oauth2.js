@@ -1,8 +1,6 @@
 let redirectUri = chrome.identity.getRedirectURL('provider_cb');
 let code, state, track, artist;
 let sentState = randStr(10); 
-let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 let responseUrl, accessToken, refreshToken, expirationDate;
 
 window.onload = function() {
@@ -11,7 +9,7 @@ window.onload = function() {
     // authorization code is returned if user logs in and authorizes access
     chrome.identity.launchWebAuthFlow({
       url: 'https://accounts.spotify.com/authorize' +
-      '?client_id=' + clientId + 
+      '?client_id=' + CLIENT_ID + 
       '&response_type=code' +
       '&redirect_uri=' + redirectUri + 
       '&scope=user-read-currently-playing' + 
@@ -52,7 +50,7 @@ window.onload = function() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+        'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET)
         // btoa() encodes string in base-64
       },
       body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + 

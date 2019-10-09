@@ -1,336 +1,116 @@
-let accessToken, refreshToken, expirationDate;
-let clientId = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-let clientSecret = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
-
-let geniusToken = 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-
-window.onload = function() {
-  // redirect to Genius page
-  chrome.cookies.getAll({
-    url: 'https://accounts.spotify.com/api/token'
-  }, cookieArray => {
-    refreshToken = accessToken = expirationDate = '';
-
-    // get token information
-    for (let cookie of cookieArray) {
-      if (cookie.name == 'accessToken') {
-        accessToken = cookie.value;
-        expirationDate = cookie.expirationDate;
-        // console.log('accessToken ED: ' + new Date(cookie.expirationDate));
-      }
-      // refreshToken
-      if (cookie.name == 'refreshToken') {
-        refreshToken = cookie.value;
-        // console.log('refreshToken ED: ' + new Date(cookie.expirationDate));
-      }
-    }
-
-    // request track information if access token is still valid
-    // otherwise, refresh access token and then request track information
-    if (Date.now() < expirationDate - 60000 && accessToken) {
-      console.log('accessToken is valid');
-      console.log('Date.now(): ' + Date.now());
-      console.log('expirationDate: ' + new Date(expirationDate));
-      requestTrack();
+window.onload = async function() {
+  const tokens = await getTokens();
+  if (checkTokens(tokens)) {
+    console.log('tokens OK');
+    displayResults(getAccessToken(tokens), getRefreshToken(tokens), GENIUS_TOKEN);
+  } else {
+    if (getRefreshToken(tokens)) {
+      let newAccessToken = await refreshAccessToken(CLIENT_ID, CLIENT_SECRET, getRefreshToken(tokens));
+      // TODO: what happens when fail to refresh?
+      displayResults(newAccessToken, getRefreshToken(tokens), GENIUS_TOKEN);
     } else {
-      console.log('accessToken has expired or there is no accessToken');
-      console.log('Date.now(): ' + Date.now());
-      console.log('expirationDate: ' + new Date(expirationDate));
-
-      if (refreshToken) {
-        // request refreshed access token
-        fetch('https://accounts.spotify.com/api/token',{ 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
-            // btoa() encodes string in base-64
-          },
-          body: 'grant_type=refresh_token&refresh_token=' + refreshToken
-        })
-          .then(response => response.json())
-          .then(data => {
-            accessToken = data.access_token;
-
-            // replace cookie
-            setAccessToken(accessToken);
-          })
-        // request track with refreshed access token
-          .then(requestTrack());
-      } else {
-        console.log('no refresh token to refresh access token, authenticate again');
-        // launch authentication again
-      }
+      // TODO: get user authorization
     }
+  }
+}
+
+async function displayResults(accessToken, refreshToken, geniusToken) {
+  let html;
+
+  try {
+    let track = await getTrack(accessToken);
+    let queries = generateQueries(track);
+    let pages = await getPages(queries, geniusToken);
+    let trackTitle = track.item.name;
+    let trackArtists = track.item.artists;
+    document.getElementById('track-title').textContent = trackTitle;
+    document.getElementById('artists').textContent = generateArtistStr(trackTitle, trackArtists);
+    let processedPages = processPages(pages);
+    // TODO: HTML should depend on results of processedPages
+    html = generateResultsHTML(processedPages);
+    document.getElementById('hits').innerHTML = html;
+  } catch(e) {
+    // TODO: update popup with error - generate error HTML with e variable
+    console.log(e);
+  }
+}
+
+function getTokens() {
+  return new Promise((resolve, reject) => {
+    chrome.cookies.getAll({
+      url: 'https://accounts.spotify.com/api/token'
+    }, tokens => {
+      resolve(tokens);
+      // TODO: reject()
+    });
   });
 }
 
-function requestTrack() {
-  // console.log('request track');
-  let title, titleClean, artistsStr, queryFirst, queryAll;
-  let artists = [];
+function getAccessToken(tokens) {
+  let filtered = tokens.filter(function(element) {
+    return element.name == 'accessToken' && element.value && element.expirationDate;
+  });
 
-  title = titleClean = artistsStr = query = '';
-
-  fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
-    method: 'GET',
-    headers: {
-      'Authorization': 'Bearer ' + accessToken
-    }
-  })
-  // check that a valid token was used
-  // do something when token is invalid
-    .then(response => {
-      // if access token is invalid
-      if (response.status == 401) {
-        console.log('Invalid access token');
-      } else if (response.status == 200) {
-        // if response has data populated, return response.json() for further processing
-        response.clone().text().then(function(text) {
-          // console.log(text.length);
-          if (text.length > 0) {
-            // console.log('Data exists. Returning JSON...');
-            return response.clone().json();
-            // else if there is no data populated, there are no available devices found
-          } else { 
-            console.log('No available devices are found.');
-          }
-        })
-          .then(data => {
-            // use returned response.clone.json()
-            // console.log('Searching for track...');
-            // console.log(data);
-
-            // matches text in parentheses with feat/ft and ignores any right 
-            // parentheses within it
-            // matches '-'  and anything after it
-            let regexFt = /[(\[](feat|ft)[^)\]]*[)\]]/g;
-            let regexDash = /- .*/g;
-            let regexBoth = /[(\[](feat|ft)[^)\]]*[)\]]|- .*/g;
-
-            title = data.item.name;
-            // clean up track title with regex
-            titleClean = title.replace(regexBoth, '');
-
-            // add all of the artists to the query
-            for (let artist of data.item.artists) {
-              // combine artist names to a variable to add to query
-              artistsStr += artist.name + ' ';
-              artists.push(artist.name);
-            }
-
-            // update #track-title, #artists
-            document.getElementById('track-title').textContent = title;
-            // if title has features, then just put the first artist's name
-            if (regexFt.test(title)) {
-              document.getElementById('artists').textContent = artists[0];
-            } else {
-              // comma and separated (, ) list of artists
-              // make them links to their Spotify pages?
-              document.getElementById('artists').textContent = artists;
-            }
-
-            queryFirst = encodeURIComponent(titleClean + ' ' + artists[0]);
-            queryAll = encodeURIComponent(titleClean + ' ' + artistsStr);
-
-            // to get no results
-            // queryFirst = encodeURIComponent('qpqpqp');
-            // queryAll = encodeURIComponent('qpqpqp');
-
-            if (artists.length > 1) {
-              searchAll(queryFirst, queryAll)
-                .then(data => {
-                  // show on popup.js
-                  updatePopup(data);
-                })
-                .catch(err => console.log('searchAll err:', err));
-            } else {
-              // search(queryFirst).catch(err => console.log(err));
-              search(queryFirst)
-                .then(data => {
-                  updatePopup(data);
-                })
-                .catch(err => console.log('search err:', err));
-            }
-
-            // update list of results
-            // for (let hit of hits) {
-            //   let list = document.querySelector('#hits-first-artist');
-            //   list.appendChild();
-            // }
-          });
-      } else if (response.status == 204) {
-        console.log('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
-      } 
-    });
-}
-
-function updatePopup(data) {
-  console.log(data);
-  // get #hits
-  let html = '';
-  for (let hit of data) {
-    html +=
-      `<li>
-      <a class="hit" target="_blank" rel="noopener noreferrer" href="${hit.result.url}">
-      <img src="${hit.result.song_art_image_thumbnail_url}">
-      <div class="text">
-      <div>
-      <div class="title">${hit.result.title}</div>
-      <div class="name">${hit.result.primary_artist.name}</div>
-      </div>
-      `;
-    if (typeof hit.result.stats.pageviews !== 'undefined') {
-      // eye icon from Genius.com
-      html += `<div class="pageviews">
-        <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
-        ${hit.result.stats.pageviews}
-        </div>
-        </div>
-        </a>
-        </li>`;
-    } else {
-      html += `</div>
-        </a>
-        </li>`;
+  if (filtered.length == 1) {
+    if (checkValidity(filtered[0])) {
+      return filtered[0].value;
     }
   }
-  document.getElementById('hits').innerHTML = html;
+  return '';
 }
 
-function search(query) {
-  console.log('query: ' + query);
+function getRefreshToken(tokens) {
+  let filtered = tokens.filter(function(element) {
+    return element.name == 'refreshToken' && element.value;
+  });
 
+  if (filtered.length == 1) {
+    return filtered[0].value;
+  }
+  return '';
+}
+
+function checkTokens(tokens) {
+  let access = getAccessToken(tokens);
+  let refresh = getRefreshToken(tokens);
+
+  if (access && refresh) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function checkValidity(accessToken) {
+  if (Date.now() < accessToken.expirationDate - 60000) return true;
+  return false;
+}
+
+function refreshAccessToken(clientId, clientSecret, refreshToken) {
   return new Promise((resolve, reject) => {
-    fetch('https://api.genius.com/search?q=' + query,{ 
-      method: 'GET',
+    fetch('https://accounts.spotify.com/api/token',{ 
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + geniusToken
-      }
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+        // btoa() encodes string in base-64
+      },
+      body: 'grant_type=refresh_token&refresh_token=' + refreshToken
     })
       .then(response => response.json())
       .then(data => {
-        // TODO: handle what happens when there are no hits
-        let hits = data.response.hits;
-
-        // console.log(hits);
-
-        // for (let hit of hits) {
-        //   console.log(hit.result.id);
-        // }
-
-        //if (hits.length > 0) {
-        resolve(hits);
-        // } else {
-        //   reject("No hits");
-        // }
-      })
-      .catch(error => console.log('error is', error));
+        console.log('refreshAccessToken');
+        setAccessToken(data.access_token);
+        resolve(data.access_token);
+      });
   });
-}
-
-function searchAll(query1, query2) {
-  console.log('searchAll');
-  // Search for title with first artist only
-  // Search for title with first artist and other artists
-  let hits1, hits2, finalHits, combined;
-  hits1 = hit2 = finalHits = [];
-
-  return new Promise((resolve, reject) => {
-    search(query1).then(hits => {
-      hits1 = hits;
-      search(query2).then(hits => {
-        hits2 = hits;
-
-        // let temp = '';
-        // console.log('hits1');
-        // for (let hit of hits1) {
-        //   temp += hit.result.id + ' ';
-        //   // console.log(hit.result.id);
-        // }
-        // console.log(temp);
-        // temp = '';
-
-        // console.log('hits2');
-        // for (let hit of hits2) {
-        //   temp += hit.result.id + ' ';
-        //   // console.log(hit.result.id);
-        // }
-        // console.log(temp);
-
-        console.log('hits1: ' + hits1.length);
-        console.log('hits2: ' + hits2.length);
-
-        // combine arrays based on array with greater length
-        if (hits1.length > hits2.length) {
-          combined = alternateMerge(hits1, hits2);
-        } else if (hits2.length > hits1.length) {
-          combined = alternateMerge(hits2, hits1);
-        } else { // just use first one
-          combined = alternateMerge(hits1, hits2);
-        }
-
-        console.log(combined);
-
-        // remove undefined values since sometimes hits1, hits2 may not be same legnth
-        // Boolean is there to remove any falsy values
-        combined = combined.filter(Boolean);
-
-        // only keep unique hits
-        // https://stackoverflow.com/a/36744732
-        finalHits = combined.filter((item,index) => {
-          // filter() creates new array with all elements that pass the test
-          // implemented by the provided function
-          // filter() iterates through each element (index)
-          return index === combined.findIndex(obj => {
-            // findIndex() returns the index of the first element in the array
-            // that satisfies the provided testing function
-            // also iterates through each element (index)
-            return JSON.stringify(obj) === JSON.stringify(item);
-          });
-        });
-
-        console.log(finalHits.length);
-
-        // return combined list
-        if (finalHits.length > 0) {
-          resolve(finalHits);
-        } else {
-          reject('No results');
-        }
-
-        // temp = '';
-        // console.log('finalHits');
-        // for (let hit of finalHits) {
-        //   temp += hit.result.id + ' ';
-        // }
-        // console.log(temp);
-        // console.log(finalHits.length);
-      })
-      // if only query1 works
-    })
-    // .catch(error => console.log('error is', error));
-    // if query1 fails, search for query2
-    // .catch(() => search(query2));
-  });
-}
-
-function alternateMerge(arr1, arr2) {
-  // alternate adding hits into a new array
-  // https://stackoverflow.com/a/13253941
-  return combined = arr1.reduce(function(arr, v, i) {
-    return arr.concat(v, arr2[i]); 
-  }, []);
 }
 
 function setAccessToken(token) {
-  console.log('setAccessToken');
   // add one hour to current time to set as expirationDate of cookie
   // 3600000ms in an hour
   let expirationDate = Date.now() + 3600000;
 
-  // set accessToken cookie
   chrome.cookies.set({
     url: 'https://accounts.spotify.com/api/token',
     name: 'accessToken',
@@ -342,3 +122,188 @@ function setAccessToken(token) {
   });
 }
 
+function getTrack(accessToken) {
+  return new Promise((resolve, reject) => {
+    fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken
+      }
+    })
+      .then (response => {
+        switch (response.status) {
+          case 200:
+            response.clone().text()
+              .then(text => {
+                if (text.length > 0) return resolve(response.clone().json());
+              });
+            break
+          case 401:
+            reject('Invalid access token');
+            break;
+          case 204: 
+            reject('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
+            break;
+        }
+      });
+  });
+}
+
+function generateQueries(track) {
+  let queries = [];
+  let artistsStr = '';
+
+  // matches text in parentheses with feat/ft and ignores any right 
+  // parentheses within it
+  let regexFt = /[(\[](feat|ft|Feat|Ft)[^)\]]*[)\]]/g;
+  // matches '-'  and anything after it
+  let regexDash = /- .*/g;
+  let regexBoth = /[(\[](feat|ft|Feat|Ft)[^)\]]*[)\]]|- .*/g;
+
+  let titleClean = track.item.name.replace(regexBoth, '');
+
+  let artists = track.item.artists;
+
+  if (artists.length > 1) {
+    // add all of the artists to the query
+
+    artistsStr = joinArtistNames(artists, ' ');
+
+    queries.push(encodeURIComponent(titleClean + ' ' + artists[0].name));
+    queries.push(encodeURIComponent(titleClean + ' ' + artistsStr));
+  } else {
+    artistsStr += artists[0].name;
+
+    queries.push(encodeURIComponent(titleClean + ' ' + artistsStr));
+  }
+
+  return queries;
+}
+
+function getPages(queries, token) {
+  let pages = [];
+
+  queries.forEach(function (query) {
+    let arr = geniusRequest(query, token);
+    pages.push(arr);
+  });
+
+  return Promise.all(pages);
+}
+
+function geniusRequest(query, token) {
+  return new Promise((resolve, reject) => {
+    fetch('https://api.genius.com/search?q=' + query,{ 
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        resolve(data.response.hits);
+        // TODO: reject()
+      });
+  });
+}
+
+function alternateMerge(arr1, arr2) {
+  // alternate adding elements into a new array
+  // https://stackoverflow.com/a/13253941
+  return combined = arr1.reduce(function(arr, v, i) {
+    return arr.concat(v, arr2[i]); 
+  }, []);
+}
+
+function keepUnique(arr) {
+  // Boolean is there to remove any falsy values
+  let filtered = arr.filter(Boolean);
+
+  // https://stackoverflow.com/a/36744732
+  return filtered.filter((item,index) => {
+    // filter() creates new array with all elements that pass the test
+    // implemented by the provided function
+    // filter() iterates through each element (index)
+    return index === filtered.findIndex(obj => {
+      // findIndex() returns the index of the first element in the array
+      // that satisfies the provided testing function
+      // also iterates through each element (index)
+      return JSON.stringify(obj) === JSON.stringify(item);
+    });
+  });
+}
+
+function processPages(pages) {
+  let result;
+  let arr1 = pages[0];
+  if (pages.length > 1) {
+    let arr2 = pages[1];
+    if (arr1.length > arr2.length) {
+      result = alternateMerge(arr1, arr2);
+      return keepUnique(result);
+    } else if (arr2.length > arr1.length) {
+      result = alternateMerge(arr2, arr1);
+      return keepUnique(result);
+    } else {
+      result = alternateMerge(arr1, arr2);
+      return keepUnique(result);
+    }
+  } else {
+    return arr1;
+  }
+}
+
+function generateResultsHTML(pages) {
+  let html = '';
+  pages.forEach(function(page) {
+    html += generatePageHTML(page);
+  });
+  return html;
+}
+
+function generatePageHTML(page) {
+  return `<li>
+      <a class="hit" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
+      <img src="${page.result.song_art_image_thumbnail_url}">
+      <div class="text">
+      <div>
+      <div class="title">${page.result.title}</div>
+      <div class="name">${page.result.primary_artist.name}</div>
+      </div>
+      `;
+    if (typeof page.result.stats.pageviews !== 'undefined') {
+      // eye icon from Genius.com
+      html += `<div class="pageviews">
+        <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
+        ${page.result.stats.pageviews}
+        </div>
+        </div>
+        </a>
+        </li>`;
+    } else {
+      html += `</div>
+        </a>
+        </li>`;
+    }
+}
+
+function joinArtistNames(artists, separator) {
+  let artistNames = [];
+
+  artists.forEach(function(artist) {
+    artistNames.push(artist.name);
+  });
+
+  return artistNames.join(separator);
+}
+
+function generateArtistStr(title, artists) {
+  let regexFt = /[(\[](feat|ft|Feat|Ft)[^)\]]*[)\]]/g;
+
+  // if there are feat/ft in the track title
+  if (regexFt.test(title)) {
+    return artists[0].name;
+  }
+  return joinArtistNames(artists, ', ');
+}
