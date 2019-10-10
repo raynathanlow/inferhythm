@@ -4,12 +4,12 @@ window.onload = async function() {
   const tokens = await getTokens();
   if (checkTokens(tokens)) {
     console.log('tokens OK');
-    displayResults(getAccessToken(tokens), getRefreshToken(tokens), GENIUS_TOKEN);
+    displayResults(getAccessToken(tokens), getRefreshToken(tokens), getGeniusToken());
   } else {
     if (getRefreshToken(tokens)) {
-      let newAccessToken = await refreshAccessToken(CLIENT_ID, CLIENT_SECRET, getRefreshToken(tokens));
+      let newAccessToken = await refreshAccessToken(getId(), getSecret(), getRefreshToken(tokens));
       // TODO: what happens when fail to refresh?
-      displayResults(newAccessToken, getRefreshToken(tokens), GENIUS_TOKEN);
+      displayResults(newAccessToken, getRefreshToken(tokens), getGeniusToken());
     } else {
       // TODO: get user authorization
     }

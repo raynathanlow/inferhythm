@@ -11,7 +11,7 @@ window.onload = function() {
     // authorization code is returned if user logs in and authorizes access
     chrome.identity.launchWebAuthFlow({
       url: 'https://accounts.spotify.com/authorize' +
-      '?client_id=' + CLIENT_ID + 
+      '?client_id=' + getId() + 
       '&response_type=code' +
       '&redirect_uri=' + redirectUri + 
       '&scope=user-read-currently-playing' + 
@@ -52,7 +52,7 @@ window.onload = function() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET)
+        'Authorization': 'Basic ' + btoa(getId() + ':' + getSecret())
         // btoa() encodes string in base-64
       },
       body: 'grant_type=authorization_code&code=' + code + '&redirect_uri=' + 
