@@ -1,3 +1,5 @@
+'use strict';
+
 let redirectUri = chrome.identity.getRedirectURL('provider_cb');
 let code, state, track, artist;
 let sentState = randStr(10); 

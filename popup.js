@@ -1,3 +1,5 @@
+'use strict';
+
 window.onload = async function() {
   const tokens = await getTokens();
   if (checkTokens(tokens)) {
@@ -211,7 +213,7 @@ function geniusRequest(query, token) {
 function alternateMerge(arr1, arr2) {
   // alternate adding elements into a new array
   // https://stackoverflow.com/a/13253941
-  return combined = arr1.reduce(function(arr, v, i) {
+  return arr1.reduce(function(arr, v, i) {
     return arr.concat(v, arr2[i]); 
   }, []);
 }
