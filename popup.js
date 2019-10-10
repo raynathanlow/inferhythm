@@ -54,7 +54,7 @@ function getAccessToken(tokens) {
   });
 
   if (filtered.length == 1) {
-    if (checkValidity(filtered[0])) {
+    if (Date.now() < filtered[0].expirationDate - 60000) {
       return filtered[0].value;
     }
   }
@@ -81,11 +81,6 @@ function checkTokens(tokens) {
   } else {
     return false;
   }
-}
-
-function checkValidity(accessToken) {
-  if (Date.now() < accessToken.expirationDate - 60000) return true;
-  return false;
 }
 
 function refreshAccessToken(clientId, clientSecret, refreshToken) {
