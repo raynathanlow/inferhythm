@@ -2,6 +2,7 @@
 
 window.onload = async function() {
   const tokens = await getTokens();
+  console.log(tokens);
   if (checkTokens(tokens)) {
     console.log('tokens OK');
     displayResults(getAccessToken(tokens), getRefreshToken(tokens), getGeniusToken());
@@ -42,32 +43,41 @@ function getTokens() {
     chrome.cookies.getAll({
       url: 'https://accounts.spotify.com/api/token'
     }, tokens => {
-      resolve(tokens);
-      // TODO: reject()
+      if (tokens.length > 0) {
+        resolve(tokens);
+      } else {
+        reject('no tokens');
+      }
     });
   });
 }
 
 function getAccessToken(tokens) {
-  let filtered = tokens.filter(function(element) {
-    return element.name == 'accessToken' && element.value && element.expirationDate;
-  });
+  if (Array.isArray(tokens)) {
+    let filtered = tokens.filter(function(element) {
+      return element.name == 'accessToken' && element.value && element.expirationDate;
+    });
 
-  if (filtered.length == 1) {
-    if (Date.now() < filtered[0].expirationDate - 60000) {
-      return filtered[0].value;
-    }
+    if (filtered.length == 1) {
+      if (Date.now() < filtered[0].expirationDate - 60000) {
+        return filtered[0].value;
+      }
+    } 
+    return '';
+  } else {
+    return '';
   }
-  return '';
 }
 
 function getRefreshToken(tokens) {
-  let filtered = tokens.filter(function(element) {
-    return element.name == 'refreshToken' && element.value;
-  });
+  if (Array.isArray(tokens)) {
+    let filtered = tokens.filter(function(element) {
+      return element.name == 'refreshToken' && element.value;
+    });
 
-  if (filtered.length == 1) {
-    return filtered[0].value;
+    if (filtered.length == 1) {
+      return filtered[0].value;
+    }
   }
   return '';
 }
@@ -304,3 +314,5 @@ function generateArtistStr(title, artists) {
   }
   return joinArtistNames(artists, ', ');
 }
+
+module.exports = { getTokens, getAccessToken, getRefreshToken }
