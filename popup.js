@@ -29,16 +29,22 @@ async function displayResults(accessToken, refreshToken, geniusToken) {
 
   try {
     let track = await getTrack(accessToken);
-    let queries = generateQueries(track);
-    let pages = await getPages(queries, geniusToken);
     let trackTitle = track.item.name;
     let trackArtists = track.item.artists;
     document.getElementById('track-title').textContent = trackTitle;
     document.getElementById('artists').textContent = generateArtistStr(trackTitle, trackArtists);
+
+    let queries = generateQueries(track);
+
+    showLoadingMsg(true);
+    
+    let pages = await getPages(queries, geniusToken);
     let processedPages = processPages(pages);
     // TODO: HTML should depend on results of processedPages
     html = generateResultsHTML(processedPages);
     document.getElementById('hits').innerHTML = html;
+
+    showLoadingMsg(false);
   } catch(e) {
     // TODO: update popup with error - generate error HTML with e variable
     console.log(e);
@@ -411,6 +417,19 @@ function generateArtistStr(title, artists) {
     return artists[0].name;
   }
   return joinArtistNames(artists, ', ');
+}
+
+/**
+ * Show loading message
+ * @param {bool} show To show or not to show loading message
+ * @return {undefined}
+ */
+function showLoadingMsg(show) {
+  if (show) {
+    document.getElementById('loading').style.display = "block";
+  } else {
+    document.getElementById('loading').style.display = "none";
+  }
 }
 
 module.exports = { getTokens, getAccessToken, getRefreshToken }
