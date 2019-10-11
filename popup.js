@@ -17,6 +17,13 @@ window.onload = async function() {
   }
 }
 
+/**
+ * Update HTML with currently playing track information and Genius results
+ * @param  {string} accessToken User's Spotify access token
+ * @param  {string} refreshToken User's Spotify token to refresh access token
+ * @param  {string} geniusToken Genius client access token
+ * @return {undefined}
+ */
 async function displayResults(accessToken, refreshToken, geniusToken) {
   let html;
 
@@ -38,6 +45,10 @@ async function displayResults(accessToken, refreshToken, geniusToken) {
   }
 }
 
+/**
+ * Get all tokens from Chrome with https://accounts.spotify.com/api/token as url
+ * @return {object}
+ */
 function getTokens() {
   return new Promise((resolve, reject) => {
     chrome.cookies.getAll({
@@ -52,6 +63,11 @@ function getTokens() {
   });
 }
 
+/**
+ * Get value of Spotify access token cookie
+ * @param  {array<object>} tokens Array of cookies from https://accounts.spotify.com/api/token
+ * @return {string}
+ */
 function getAccessToken(tokens) {
   if (Array.isArray(tokens)) {
     let filtered = tokens.filter(function(element) {
@@ -69,6 +85,11 @@ function getAccessToken(tokens) {
   }
 }
 
+/**
+ * Get value of Spotify refresh token cookie
+ * @param  {array<object>} tokens Return value of getTokens()
+ * @return {string}
+ */
 function getRefreshToken(tokens) {
   if (Array.isArray(tokens)) {
     let filtered = tokens.filter(function(element) {
@@ -82,6 +103,11 @@ function getRefreshToken(tokens) {
   return '';
 }
 
+/**
+ * Check that both access and refresh token values exist
+ * @param  {array<object>} tokens Return value of getTokens()
+ * @return {boolean}
+ */
 function checkTokens(tokens) {
   let access = getAccessToken(tokens);
   let refresh = getRefreshToken(tokens);
@@ -93,6 +119,13 @@ function checkTokens(tokens) {
   }
 }
 
+/**
+ * Refresh and set access token as cookie
+ * @param  {string} clientId     Spotify client ID
+ * @param  {string} clientSecret Spotify client secret
+ * @param  {string} refreshToken User's Spotify refresh token
+ * @return {object}
+ */
 function refreshAccessToken(clientId, clientSecret, refreshToken) {
   return new Promise((resolve, reject) => {
     fetch('https://accounts.spotify.com/api/token',{ 
@@ -113,6 +146,11 @@ function refreshAccessToken(clientId, clientSecret, refreshToken) {
   });
 }
 
+/**
+ * Set Spotify access token as a cookie
+ * @param  {string} token User's new Spotify access token
+ * @return {undefined}
+ */
 function setAccessToken(token) {
   // add one hour to current time to set as expirationDate of cookie
   // 3600000ms in an hour
@@ -129,6 +167,11 @@ function setAccessToken(token) {
   });
 }
 
+/**
+ * Make GET request to Spotify to get user's currently playing track
+ * @param  {string} accessToken User's Spotify access token
+ * @return {object}
+ */
 function getTrack(accessToken) {
   return new Promise((resolve, reject) => {
     fetch('https://api.spotify.com/v1/me/player/currently-playing',{ 
@@ -156,6 +199,11 @@ function getTrack(accessToken) {
   });
 }
 
+/**
+ * Generate array of query strings
+ * @param  {object} track User's currently playing track
+ * @return {array<string>} 
+ */
 function generateQueries(track) {
   let queries = [];
   let artistsStr = '';
@@ -187,6 +235,12 @@ function generateQueries(track) {
   return queries;
 }
 
+/**
+ * Create array of arrays with results of Genius GET request
+ * @param  {array<string>} queries Array of query strings
+ * @param  {string}        token   Genius client access token
+ * @return {array<array<object>>}
+ */
 function getPages(queries, token) {
   let pages = [];
 
@@ -198,6 +252,12 @@ function getPages(queries, token) {
   return Promise.all(pages);
 }
 
+/**
+ * Make Genius GET request 
+ * @param  {string} query Query string
+ * @param  {string} token Genius client access token
+ * @return {object}
+ */
 function geniusRequest(query, token) {
   return new Promise((resolve, reject) => {
     fetch('https://api.genius.com/search?q=' + query,{ 
@@ -215,6 +275,12 @@ function geniusRequest(query, token) {
   });
 }
 
+/**
+ * Create new array where it takes one element from each array at a time
+ * @param  {array<object>} arr1 A non-empty array
+ * @param  {array<object>} arr2 A non-empty array
+ * @return {array<object>}
+ */
 function alternateMerge(arr1, arr2) {
   // alternate adding elements into a new array
   // https://stackoverflow.com/a/13253941
@@ -223,6 +289,11 @@ function alternateMerge(arr1, arr2) {
   }, []);
 }
 
+/**
+ * Filter array down where there are no duplicate elements
+ * @param  {array<object>} arr A non-empty array
+ * @return {array<object>}
+ */
 function keepUnique(arr) {
   // Boolean is there to remove any falsy values
   let filtered = arr.filter(Boolean);
@@ -241,6 +312,11 @@ function keepUnique(arr) {
   });
 }
 
+/**
+ * Get a finalized array of Genius pages
+ * @param  {array<array<object>>} pages Array of arrays with objects
+ * @return {array<object>}
+ */
 function processPages(pages) {
   let result;
   let arr1 = pages[0];
@@ -261,6 +337,11 @@ function processPages(pages) {
   }
 }
 
+/**
+ * Generate HTML for all Genius pages
+ * @param  {array<object>} pages Genius page objects
+ * @return {string}
+ */
 function generateResultsHTML(pages) {
   let html = '';
   pages.forEach(function(page) {
@@ -269,6 +350,11 @@ function generateResultsHTML(pages) {
   return html;
 }
 
+/**
+ * Generate HTML for one Genius page
+ * @param  {object} page Genius page object
+ * @return {string}
+ */
 function generatePageHTML(page) {
   return `<li>
       <a class="hit" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
@@ -295,6 +381,12 @@ function generatePageHTML(page) {
     }
 }
 
+/**
+ * Join artist names found in each artist object by separator
+ * @param  {array<object>} artists   Array of artist objects
+ * @param  {string}        separator Separator to separate names by
+ * @return {string}
+ */
 function joinArtistNames(artists, separator) {
   let artistNames = [];
 
@@ -305,6 +397,12 @@ function joinArtistNames(artists, separator) {
   return artistNames.join(separator);
 }
 
+/**
+ * Generate string with artist(s) depending if there are features in the track title
+ * @param {string}  title   Title of track
+ * @param {artists} artists Array of artist objects
+ * @return {string}
+ */
 function generateArtistStr(title, artists) {
   let regexFt = /[(\[](feat|ft|Feat|Ft)[^)\]]*[)\]]/g;
 
