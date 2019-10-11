@@ -2,14 +2,57 @@
   <head>
     <title>Adepto</title>
     <style>
+body {
+  text-align: center;
+  padding: 5rem;
+  max-width: 50rem;
+}
 button {
   padding: 10px;
+  margin: 1rem;
+}
+#success {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+}
+#success ol {
+  text-align: left;
+  max-width: 25rem;
+  margin: 0 auto;
+}
+li {
+  line-height: 1.3rem;
+}
+#fail {
+  display: none;
 }
     </style>
   </head>
   <body>
-    <button id="log-in">Log In</button>
-    <button id="request-a-r">Request Access and Refresh Token</button>
+    <div id="installed">
+      <h1>Adepto has been installed!</h1>
+      <p>Adepto helps you find the Genius page for the song you're currently 
+      listening to on Spotify.</p>
+      <p>You will need to grant Adepto permission access to read your Spotify's recently played tracks.</p>
+      <p>Sign in below to get started!</p>
+      <div id="fail">
+        <p>Something went wrong...</p>
+        <p>Try to sign in again</p>
+      </div>
+    </div>
+    <div id="success">
+      <h1>Successfully authorized Adepto!</h1>
+      <p>Here are the steps to use Adepto:</p>
+      <ol>
+        <li>Start listening to any track on Spotify</li>
+        <li>Click the Adepto icon to the right of the address bar</li>
+        <li>If there are results on Genius related to the track, then a list of of pages should appear promptly</li>
+        <li>Enjoy learning the deeper meaning to the track!</li>
+      </ol>
+      <p>You may close this window.</p>
+    </div>
+    <button id="sign-in">Sign in</button>
 
     <script type="text/javascript" src="clientinfo.js"></script>
     <script type="text/javascript" src="oauth2.js"></script>
