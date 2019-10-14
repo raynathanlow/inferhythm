@@ -1,19 +1,20 @@
 'use strict';
 
 window.onload = async function() {
-  const tokens = await getTokens();
-  console.log(tokens);
-  if (checkTokens(tokens)) {
-    console.log('tokens OK');
-    displayResults(getAccessToken(tokens), getRefreshToken(tokens), getGeniusToken());
-  } else {
-    if (getRefreshToken(tokens)) {
-      let newAccessToken = await refreshAccessToken(getId(), getSecret(), getRefreshToken(tokens));
-      // TODO: what happens when fail to refresh?
-      displayResults(newAccessToken, getRefreshToken(tokens), getGeniusToken());
+  showLoadingMsg(true);
+  try {
+    const tokens = await getTokens();
+    if (checkTokens(tokens)) {
+      displayResults(getAccessToken(tokens), getRefreshToken(tokens), getGeniusToken());
     } else {
-      // TODO: get user authorization
+      if (getRefreshToken(tokens)) {
+        let newAccessToken = await refreshAccessToken(getId(), getSecret(), getRefreshToken(tokens));
+        displayResults(newAccessToken, getRefreshToken(tokens), getGeniusToken());
+      } 
+      throw 'get user authorization';
     }
+  } catch (e) {
+    // TODO: Get user authorization
   }
 }
 
@@ -26,6 +27,7 @@ window.onload = async function() {
  */
 async function displayResults(accessToken, refreshToken, geniusToken) {
   let html;
+  let googleQuery;
 
   try {
     let track = await getTrack(accessToken);
@@ -34,20 +36,38 @@ async function displayResults(accessToken, refreshToken, geniusToken) {
     document.getElementById('track-title').textContent = trackTitle;
     document.getElementById('artists').textContent = generateArtistStr(trackTitle, trackArtists);
 
-    let queries = generateQueries(track);
+    googleQuery = trackTitle.replace(/\s/g, '+') + trackArtists[0].name.replace(/\s/g, '+') + '+\"Genius\"';
 
-    showLoadingMsg(true);
-    
+    let queries = generateQueries(track);
     let pages = await getPages(queries, geniusToken);
     let processedPages = processPages(pages);
-    // TODO: HTML should depend on results of processedPages
-    html = generateResultsHTML(processedPages);
-    document.getElementById('hits').innerHTML = html;
-
-    showLoadingMsg(false);
+    if (processedPages.length > 0) {
+      html = generateResultsHTML(processedPages);
+      document.getElementById('hits').innerHTML = html;
+      showLoadingMsg(false);
+    } else {
+      throw 'No Genius Results';
+    }
   } catch(e) {
-    // TODO: update popup with error - generate error HTML with e variable
-    console.log(e);
+    switch (e) {
+      case 'No available devices are found':
+        showError(e, true);
+        break;
+      case 'Invalid access token':
+        showError(e, true);
+        // TODO: reauthenticate
+        break;
+      case 'Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.':
+        showError(e, true);
+        break;
+      case 'No Genius Results':
+        let message = 'No Genius results. Maybe it can be found through <a target="_blank" href="http://www.google.com/search?q=' + googleQuery + '">Google.</a>';
+        showError(message, true);
+        break;
+      case 'Unknown error':
+        showError(e, true);
+        break;
+    }
   }
 }
 
@@ -84,11 +104,10 @@ function getAccessToken(tokens) {
       if (Date.now() < filtered[0].expirationDate - 60000) {
         return filtered[0].value;
       }
-    } 
-    return '';
-  } else {
-    return '';
+    }
   }
+
+  return '';
 }
 
 /**
@@ -106,6 +125,7 @@ function getRefreshToken(tokens) {
       return filtered[0].value;
     }
   }
+
   return '';
 }
 
@@ -145,9 +165,13 @@ function refreshAccessToken(clientId, clientSecret, refreshToken) {
     })
       .then(response => response.json())
       .then(data => {
-        console.log('refreshAccessToken');
-        setAccessToken(data.access_token);
-        resolve(data.access_token);
+        // console.log('refreshAccessToken');
+        if (data.access_token) {
+          setAccessToken(data.access_token);
+          resolve(data.access_token);
+        } else {
+          reject('no access token');
+        }
       });
   });
 }
@@ -191,7 +215,11 @@ function getTrack(accessToken) {
           case 200:
             response.clone().text()
               .then(text => {
-                if (text.length > 0) return resolve(response.clone().json());
+                if (text.length > 0) {
+                  resolve(response.clone().json());
+                } else {
+                  reject('No available devices are found');
+                }
               });
             break
           case 401:
@@ -199,6 +227,9 @@ function getTrack(accessToken) {
             break;
           case 204: 
             reject('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
+            break;
+          default:
+            reject('Unknown error');
             break;
         }
       });
@@ -230,12 +261,12 @@ function generateQueries(track) {
 
     artistsStr = joinArtistNames(artists, ' ');
 
-    queries.push(encodeURIComponent(titleClean + ' ' + artists[0].name));
-    queries.push(encodeURIComponent(titleClean + ' ' + artistsStr));
+    queries.push(encodeURIComponent(titleClean.trim() + ' ' + artists[0].name));
+    queries.push(encodeURIComponent(titleClean.trim() + ' ' + artistsStr));
   } else {
     artistsStr += artists[0].name;
 
-    queries.push(encodeURIComponent(titleClean + ' ' + artistsStr));
+    queries.push(encodeURIComponent(titleClean.trim() + ' ' + artistsStr));
   }
 
   return queries;
@@ -275,8 +306,11 @@ function geniusRequest(query, token) {
     })
       .then(response => response.json())
       .then(data => {
-        resolve(data.response.hits);
-        // TODO: reject()
+        if (data.response.hits.length > 0) {
+          resolve(data.response.hits);
+        } else {
+          resolve([]);
+        }
       });
   });
 }
@@ -290,9 +324,25 @@ function geniusRequest(query, token) {
 function alternateMerge(arr1, arr2) {
   // alternate adding elements into a new array
   // https://stackoverflow.com/a/13253941
-  return arr1.reduce(function(arr, v, i) {
-    return arr.concat(v, arr2[i]); 
-  }, []);
+  let result;
+  if (arr1.length > arr2.length) {
+    result = arr1.reduce(function(arr, v, i) {
+      return arr.concat(v, arr2[i]); 
+    }, []);
+  } else if (arr2.length > arr1.length) {
+    result = arr2.reduce(function(arr, v, i) {
+      return arr.concat(v, arr1[i]); 
+    }, []);
+  } else {
+    result = arr1.reduce(function(arr, v, i) {
+      return arr.concat(v, arr2[i]); 
+    }, []);
+  }
+
+  result = result.filter(Boolean);
+
+  // Boolean is there to remove any falsy values
+  return result;
 }
 
 /**
@@ -301,15 +351,12 @@ function alternateMerge(arr1, arr2) {
  * @return {array<object>}
  */
 function keepUnique(arr) {
-  // Boolean is there to remove any falsy values
-  let filtered = arr.filter(Boolean);
-
   // https://stackoverflow.com/a/36744732
-  return filtered.filter((item,index) => {
+  return arr.filter((item,index) => {
     // filter() creates new array with all elements that pass the test
     // implemented by the provided function
     // filter() iterates through each element (index)
-    return index === filtered.findIndex(obj => {
+    return index === arr.findIndex(obj => {
       // findIndex() returns the index of the first element in the array
       // that satisfies the provided testing function
       // also iterates through each element (index)
@@ -328,16 +375,8 @@ function processPages(pages) {
   let arr1 = pages[0];
   if (pages.length > 1) {
     let arr2 = pages[1];
-    if (arr1.length > arr2.length) {
-      result = alternateMerge(arr1, arr2);
-      return keepUnique(result);
-    } else if (arr2.length > arr1.length) {
-      result = alternateMerge(arr2, arr1);
-      return keepUnique(result);
-    } else {
-      result = alternateMerge(arr1, arr2);
-      return keepUnique(result);
-    }
+    result = alternateMerge(arr1, arr2);
+    return keepUnique(result);
   } else {
     return arr1;
   }
@@ -362,7 +401,8 @@ function generateResultsHTML(pages) {
  * @return {string}
  */
 function generatePageHTML(page) {
-  return `<li>
+  let html = '';
+  html += `<li>
       <a class="hit" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
       <img src="${page.result.song_art_image_thumbnail_url}">
       <div class="text">
@@ -371,20 +411,21 @@ function generatePageHTML(page) {
       <div class="name">${page.result.primary_artist.name}</div>
       </div>
       `;
-    if (typeof page.result.stats.pageviews !== 'undefined') {
-      // eye icon from Genius.com
-      html += `<div class="pageviews">
+  if (typeof page.result.stats.pageviews !== 'undefined') {
+    // eye icon from Genius.com
+    html += `<div class="pageviews">
         <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
         ${page.result.stats.pageviews}
         </div>
         </div>
         </a>
         </li>`;
-    } else {
-      html += `</div>
+  } else {
+    html += `</div>
         </a>
         </li>`;
-    }
+  }
+  return html;
 }
 
 /**
@@ -432,4 +473,28 @@ function showLoadingMsg(show) {
   }
 }
 
-module.exports = { getTokens, getAccessToken, getRefreshToken }
+/**
+ * Show error
+ * @param {string} message Error message to show
+ * @param {bool}   show    To show or not to show error message
+ * @return {undefined}
+ */
+function showError(error, show) {
+  showLoadingMsg(false);
+  if (show) {
+    let body = document.getElementsByTagName('body')[0]
+    let div = document.createElement('div');
+    let heading = document.createElement('p');
+    heading.innerHTML = 'Something went wrong!';
+    let message = document.createElement('p');
+    message.innerHTML = error;
+
+    body.appendChild(div);
+    div.appendChild(heading);
+    div.appendChild(message);
+  }
+}
+// module.exports = { displayResults, getTokens, getAccessToken, getRefreshToken, 
+//   checkTokens, generateQueries, alternateMerge, keepUnique, 
+//   processPages, generateResultsHTML, generatePageHTML, joinArtistNames, 
+//   generateArtistStr }
