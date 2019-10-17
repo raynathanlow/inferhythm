@@ -3,6 +3,8 @@ body {
   text-align: center;
   padding: 5rem;
   max-width: 50rem;
+	color: rgb(34, 34, 34);
+	background-color: #f7f7f7;
 }
 
 button {
@@ -12,14 +14,30 @@ button {
 
 ol {
   text-align: left;
-  max-width: 25rem;
   margin: 0 auto;
 }
 
 li {
+	background-color: #ffffff;
   line-height: 1.3rem;
 }
 
-#fail {
-  display: none;
+section {
+  margin: 4rem 0;
+}
+
+#steps li {
+  display: flex;
+  margin: 1rem;
+  width: 100%;
+}
+
+#steps img {
+  max-width: 100%;
+  height: 220px;
+  margin-right: 1rem;
+}
+
+#steps p {
+  margin: 3rem;
 }
