@@ -1,7 +1,6 @@
 'use strict';
 
 window.onload = async function() {
-  showLoadingMsg(true);
   try {
     const tokens = await getTokens();
     if (checkTokens(tokens)) {
@@ -11,10 +10,9 @@ window.onload = async function() {
         let newAccessToken = await refreshAccessToken(getId(), getSecret(), getRefreshToken(tokens));
         displayResults(newAccessToken, getRefreshToken(tokens), getGeniusToken());
       } 
-      throw 'get user authorization';
     }
   } catch (e) {
-    // TODO: Get user authorization
+    errorHTML(e);
   }
 }
 
@@ -26,49 +24,31 @@ window.onload = async function() {
  * @return {undefined}
  */
 async function displayResults(accessToken, refreshToken, geniusToken) {
-  let html;
-  let googleQuery;
 
   try {
     let track = await getTrack(accessToken);
     let trackTitle = track.item.name;
     let trackArtists = track.item.artists;
-    document.getElementById('track-title').textContent = trackTitle;
-    document.getElementById('artists').textContent = generateArtistStr(trackTitle, trackArtists);
 
-    googleQuery = trackTitle.replace(/\s/g, '+') + trackArtists[0].name.replace(/\s/g, '+') + '+\"Genius\"';
+    let artistsStr = generateArtistStr(trackTitle, trackArtists);
+
+    searchHTML(track, artistsStr);
 
     let queries = generateQueries(track);
     let pages = await getPages(queries, geniusToken);
     let processedPages = processPages(pages);
     if (processedPages.length > 0) {
-      html = generateResultsHTML(processedPages);
-      document.getElementById('hits').innerHTML = html;
-      showLoadingMsg(false);
+      let results = generateResultsHTML(processedPages);
+      resultsHTML(track, artistsStr, results);
+      googleLinks(trackTitle, trackArtists);
     } else {
-      throw 'No Genius Results';
+      document.body.innerHTML = '<h1>No results</h1>';
+      googleLinks(trackTitle, trackArtists);
     }
   } catch(e) {
-    switch (e) {
-      case 'No available devices are found':
-        showError(e, true);
-        break;
-      case 'Invalid access token':
-        showError(e, true);
-        // TODO: reauthenticate
-        break;
-      case 'Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.':
-        showError(e, true);
-        break;
-      case 'No Genius Results':
-        let message = 'No Genius results. Maybe it can be found through <a target="_blank" href="http://www.google.com/search?q=' + googleQuery + '">Google.</a>';
-        showError(message, true);
-        break;
-      case 'Unknown error':
-        showError(e, true);
-        break;
-    }
+    errorHTML(e);
   }
+
 }
 
 /**
@@ -83,7 +63,7 @@ function getTokens() {
       if (tokens.length > 0) {
         resolve(tokens);
       } else {
-        reject('no tokens');
+        reject('No tokens');
       }
     });
   });
@@ -227,9 +207,6 @@ function getTrack(accessToken) {
             break;
           case 204: 
             reject('Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.');
-            break;
-          default:
-            reject('Unknown error');
             break;
         }
       });
@@ -474,26 +451,88 @@ function showLoadingMsg(show) {
 }
 
 /**
- * Show error
- * @param {string} message Error message to show
- * @param {bool}   show    To show or not to show error message
+ * Replace body with HTML to show while searching for Genius pages
+ * @param {object} track Currently playing track
  * @return {undefined}
  */
-function showError(error, show) {
-  showLoadingMsg(false);
-  if (show) {
-    let body = document.getElementsByTagName('body')[0]
-    let div = document.createElement('div');
-    let heading = document.createElement('p');
-    heading.innerHTML = 'Something went wrong!';
-    let message = document.createElement('p');
-    message.innerHTML = error;
+function searchHTML(track, artistsStr) {
+  document.body.innerHTML = `<main id="search">
+      <h1>Searching...</h1>
+      <img class="search-img" src="${track.item.album.images[1].url}">
+      <p class="search-title">${track.item.name}</p>
+      <p class="search-artists">${artistsStr}</p>
+    </main>`;
+}
 
-    body.appendChild(div);
-    div.appendChild(heading);
-    div.appendChild(message);
+/**
+ * Replace body with HTML to show results
+ * @return {undefined}
+ */
+function resultsHTML(track, artistsStr, results) {
+  document.body.innerHTML = `<main id="results" class="fade-in">
+      <h1>Results</h1>
+      <ul>
+        ${results}
+      </ul>
+    </main>`;
+}
+
+/**
+ * Replace body with HTML to show before user has authorized Adepto
+ * @return {undefined}
+ */
+function beforeAuthHTML() {
+  document.body.innerHTML = `<h1>Adepto</h1>`;
+  document.body.innerHTML = `<h1>Adepto</h1>
+    <p>Adepto helps you find the Genius page for the song you're currently listening to on Spotify.</p>
+    <p>Please <a class="link" href="index.html">sign in</a> to get started!</p>`;
+}
+
+
+/**
+ * Replace body with HTML to show error
+ * @return {undefined}
+ */
+function errorHTML(errorMsg) {
+  document.body.innerHTML = '<h1>Something went wrong!</h1>';
+  switch(errorMsg) {
+    case 'No available devices are found':
+      document.body.innerHTML += '<p>No available devices are found.</p>';
+      document.body.innerHTML += '<p>Make sure that you have Spotify installed on one of your devices and logged in, then try again.</p>';
+      break;
+    case 'Invalid access token':
+      document.body.innerHTML += '<p>Invalid access token. Please <a class="link" href="index.html">sign in</a> again.</p>';
+      break;
+    case 'Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.':
+      document.body.innerHTML += '<p>Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.</p>';
+      break;
+    case 'No tokens':
+      document.body.innerHTML = `<h1>Adepto</h1>
+        <p>Adepto helps you find the Genius page for the song you're currently listening to on Spotify.</p>
+        <p>Please <a class="link" target="_blank" href="index.html">sign in</a> to get started!</p>`;
+      break;
+    default:
+      document.body.innerHTML += '<p>Unknown error occured. Try restarting Google Chrome and/or Spotify, then try again.</p>';
+      break;
   }
 }
+
+/**
+ * Append Google Search links to body
+ * @return {undefined}
+ */
+function googleLinks(trackTitle, trackArtists) {
+  let track = trackTitle.replace(/ /g, '+');
+  let artists = joinArtistNames(trackArtists, '+');
+  document.body.innerHTML += `<nav id="google-links">
+      <p>If didn't find what you wanted, here are some Google Search links:</p>
+      <ul>
+        <li><a class="link" target="_blank" href="http://www.google.com/search?q=${track}+${artists}+%22Genius%22">Genius page</a></li>
+        <li><a class="link" target="_blank" href="http://www.google.com/search?q=${track}+${artists}+%22lyrics%22">Plain lyrics</a></li>
+      </ul>
+    </nav>`;
+}
+
 // module.exports = { displayResults, getTokens, getAccessToken, getRefreshToken, 
 //   checkTokens, generateQueries, alternateMerge, keepUnique, 
 //   processPages, generateResultsHTML, generatePageHTML, joinArtistNames, 

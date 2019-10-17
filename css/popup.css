@@ -1,0 +1,123 @@
+html, body {
+	width: 400px;
+	margin: 0;
+	padding: 0;
+	color: rgb(34, 34, 34);
+	background-color: #f7f7f7;
+}
+
+main {
+	padding: 0 0.5rem;
+}
+
+h1 {
+	text-align: center;
+}
+
+a {
+	text-decoration: none;
+	color: rgb(34, 34, 34);
+}
+
+p {
+	margin: 1rem;
+}
+
+ul {
+	padding: 0;
+	margin: 0;
+}
+
+#results li {
+	list-style-type: none;
+	margin: 0.25rem 0em;
+	background-color: #ffffff;
+}
+
+#search {
+	text-align: center;
+}
+
+.search-img {
+	display: block;
+	margin: auto;
+	width: 60%;
+}
+
+.search-title {
+	font-size: 1.5rem;
+}
+
+.search-artists {
+	font-size: 1rem;
+}
+
+.track-info {
+	display: flex;
+	justify-content: space-between;
+	margin: 0.5rem;
+}
+
+.track-info img {
+	width: 30%;
+}
+
+.track-title-artist {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.track-title-artist p {
+	margin: 0.5rem 0rem;
+}
+
+.hit {
+	display: flex;
+}
+
+.hit img {
+	max-width: 20%;
+	height: 75px;
+}
+
+.text {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: .375rem .375rem .25rem;
+}
+
+.name {
+	font-size: 0.75em;
+	margin-top: .125rem;
+}
+
+.pageviews {
+	font-size: 0.75em;
+}
+
+.eye {
+	height: 0.7em;
+}
+
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.fade-in {
+	opacity: 0;
+	animation: fadeIn ease-in 1;
+	animation-fill-mode: forwards;
+	animation-duration: 0.75s;
+}
+
+.link {
+	text-decoration: underline;
+}
+
+#google-links {
+  padding: 0.5rem;
+}
+
+#google-links li {
+  line-height: 1.5rem;
+}
