@@ -1,6 +1,7 @@
 'use strict';
 
 window.onload = async function() {
+  document.body.innerHTML = '<p>Getting track that\'s currently playing...</p>';
   try {
     const tokens = await getTokens();
     if (checkTokens(tokens)) {
