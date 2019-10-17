@@ -525,7 +525,7 @@ function googleLinks(trackTitle, trackArtists) {
   let track = trackTitle.replace(/ /g, '+');
   let artists = joinArtistNames(trackArtists, '+');
   document.body.innerHTML += `<nav id="google-links">
-      <p>If didn't find what you wanted, here are some Google Search links:</p>
+      <p>If results are unsatisfactory, here are links to find it on Google:</p>
       <ul>
         <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22Genius%22">Genius page</a></li>
         <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22lyrics%22">Plain lyrics</a></li>

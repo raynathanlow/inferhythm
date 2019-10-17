@@ -121,6 +121,8 @@ ul {
   padding: 0.5rem;
 }
 
-#google-links li {
-  line-height: 1.5rem;
+#google-links ul {
+  display: flex;
+  justify-content: space-around;
+  list-style-type: none;
 }
