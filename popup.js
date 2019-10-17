@@ -380,17 +380,17 @@ function generateResultsHTML(pages) {
 function generatePageHTML(page) {
   let html = '';
   html += `<li>
-      <a class="hit" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
+      <a class="page" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
       <img src="${page.result.song_art_image_thumbnail_url}">
-      <div class="text">
-      <div>
-      <div class="title">${page.result.title}</div>
-      <div class="name">${page.result.primary_artist.name}</div>
-      </div>
+      <div class="page-text">
+        <div>
+          <div class="page-title">${page.result.title}</div>
+          <div class="page-artist">${page.result.primary_artist.name}</div>
+        </div>
       `;
   if (typeof page.result.stats.pageviews !== 'undefined') {
     // eye icon from Genius.com
-    html += `<div class="pageviews">
+    html += `<div class="page-views">
         <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
         ${page.result.stats.pageviews}
         </div>
@@ -509,7 +509,7 @@ function errorHTML(errorMsg) {
     case 'No tokens':
       document.body.innerHTML = `<h1>Adepto</h1>
         <p>Adepto helps you find the Genius page for the song you're currently listening to on Spotify.</p>
-        <p>Please <a class="link" target="_blank" href="index.html">sign in</a> to get started!</p>`;
+        <p>Please <a class="link" target="_blank" rel="noopener noreferrer" href="index.html">sign in</a> to get started!</p>`;
       break;
     default:
       document.body.innerHTML += '<p>Unknown error occured. Try restarting Google Chrome and/or Spotify, then try again.</p>';
@@ -527,8 +527,8 @@ function googleLinks(trackTitle, trackArtists) {
   document.body.innerHTML += `<nav id="google-links">
       <p>If didn't find what you wanted, here are some Google Search links:</p>
       <ul>
-        <li><a class="link" target="_blank" href="http://www.google.com/search?q=${track}+${artists}+%22Genius%22">Genius page</a></li>
-        <li><a class="link" target="_blank" href="http://www.google.com/search?q=${track}+${artists}+%22lyrics%22">Plain lyrics</a></li>
+        <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22Genius%22">Genius page</a></li>
+        <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22lyrics%22">Plain lyrics</a></li>
       </ul>
     </nav>`;
 }

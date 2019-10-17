@@ -72,28 +72,32 @@ ul {
 	margin: 0.5rem 0rem;
 }
 
-.hit {
+.page {
 	display: flex;
 }
 
-.hit img {
+.page img {
 	max-width: 20%;
 	height: 75px;
 }
 
-.text {
+.page-text {
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
 	padding: .375rem .375rem .25rem;
 }
 
-.name {
-	font-size: 0.75em;
+.page-title {
+  font-size: 1.2em;
+}
+
+.page-artist {
+	font-size: 0.9em;
 	margin-top: .125rem;
 }
 
-.pageviews {
+.page-views {
 	font-size: 0.75em;
 }
 
@@ -101,8 +105,7 @@ ul {
 	height: 0.7em;
 }
 
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } } 
 .fade-in {
 	opacity: 0;
 	animation: fadeIn ease-in 1;
