@@ -30,26 +30,26 @@ function requestAuthorization() {
     // how-to-get-the-value-from-the-get-parameters
     // URL() constructor returns a URL object which represents the URL 
     // defined by its parameters
-    responseUrl = new URL(response);
-    code = responseUrl.searchParams.get('code');
-    // URLSearchParams: an interface with utility methods that work with
-    // the query string of a URL
-    // A query string is the part of the URL that stores data which can be
-    // passed to and from a web application and a server.
-    // The query string follows the question mark sign in the URL
+    if (response) {
+      responseUrl = new URL(response);
+      code = responseUrl.searchParams.get('code');
+      // URLSearchParams: an interface with utility methods that work with
+      // the query string of a URL
+      // A query string is the part of the URL that stores data which can be
+      // passed to and from a web application and a server.
+      // The query string follows the question mark sign in the URL
 
-    state = responseUrl.searchParams.get('state');
+      state = responseUrl.searchParams.get('state');
 
-    // verify sent state is the same as the response state 
-    if (state == sentState) {
-      // console.log('same state');
-      requestTokens(code);
+      // verify sent state is the same as the response state 
+      if (state == sentState) {
+        // console.log('same state');
+        requestTokens(code);
+      } 
     } else {
-      // console.log('different state');
-      // console.log('sentState: ' + sentState);
-      // console.log('response state: ' + state);
+      window.location.href = 'abort.html';
     }
-  })
+  });
 }
 
 /**
@@ -75,8 +75,6 @@ function requestTokens(code) {
 
       setAccessToken(accessToken);
 
-      updateHTML('success');
-
       // refresh token doesn't actually expire, but
       // setting the refresh token to "expire" after one year, for now
       // this is so that the user doesn't have to reauthenticate so often
@@ -94,7 +92,9 @@ function requestTokens(code) {
         sameSite: 'strict',
         expirationDate: Date.parse(expirationDate)
       });
-    })
+
+      window.location.href = 'success.html';
+    });
 }
 
 /**
@@ -134,23 +134,4 @@ function randStr(length) {
     result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
-}
-
-/**
- * Update HTML based on result of user authorization
- * @param  {string} result Name of result
- * @return {undefined}
- */
-function updateHTML(result) {
-  switch (result) {
-    case 'success':
-      document.getElementById("installed").style.display = "none";
-      document.getElementById("sign-in").style.display = "none";
-      document.getElementById("success").style.display = "flex";
-      break;
-    case 'fail':
-      document.getElementById("installed").style.display = "none";
-      document.getElementById("fail").style.display = "flex";
-      break;
-  }
 }
