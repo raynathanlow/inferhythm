@@ -4,8 +4,7 @@ body {
   padding: 5rem;
   max-width: 50rem;
 	color: rgb(34, 34, 34);
-	background-color: #f7f7f7;
-}
+	background-color: #f7f7f7; }
 
 button {
   padding: 10px;
@@ -22,7 +21,7 @@ li {
   line-height: 1.3rem;
 }
 
-section {
+article {
   margin: 4rem 0;
 }
 
