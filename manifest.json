@@ -1,7 +1,7 @@
 {
-  "name": "Adepto",
+  "name": "Inferhythm",
   "version": "1.0",
-  "description": "Get Genius Lyrics",
+  "description": "Get Genius lyrics for the track that's currently being played on Spotify.",
   "permissions": [
     "identity",
     "cookies",

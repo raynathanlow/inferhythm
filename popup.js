@@ -465,13 +465,13 @@ function resultsHTML(track, artistsStr, results) {
 }
 
 /**
- * Replace body with HTML to show before user has authorized Adepto
+ * Replace body with HTML to show before user has authorized Inferhythm
  * @return {undefined}
  */
 function beforeAuthHTML() {
-  document.body.innerHTML = `<h1>Adepto</h1>`;
-  document.body.innerHTML = `<h1>Adepto</h1>
-    <p>Adepto helps you find the Genius page for the song you're currently listening to on Spotify.</p>
+  document.body.innerHTML = `<h1>Inferhythm</h1>`;
+  document.body.innerHTML = `<h1>Inferhythm</h1>
+    <p>Inferhythm helps you find the Genius page for the song you're currently listening to on Spotify.</p>
     <p>Please <a class="link" href="index.html">sign in</a> to get started!</p>`;
 }
 
@@ -494,8 +494,8 @@ function errorHTML(errorMsg) {
       document.body.innerHTML += '<p>Can\'t find currently playing track. Either no track is currently playing or your account is in a private session.</p>';
       break;
     case 'No tokens':
-      document.body.innerHTML = `<h1>Adepto</h1>
-        <p>Adepto helps you find the Genius page for the song you're currently listening to on Spotify.</p>
+      document.body.innerHTML = `<h1>Inferhythm</h1>
+        <p>Inferhythm helps you find the Genius page for the song you're currently listening to on Spotify.</p>
         <p>Please <a class="link" target="_blank" rel="noopener noreferrer" href="index.html">sign in</a> to get started!</p>`;
       break;
     default:

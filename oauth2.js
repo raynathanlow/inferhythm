@@ -10,7 +10,7 @@ window.onload = function() {
 };
 
 /**
- * Prompt user to authorize Adepto access to read currently playing song on
+ * Prompt user to authorize Inferhythm access to read currently playing song on
  * @return {undefined}
  */
 function requestAuthorization() {
