@@ -379,8 +379,7 @@ function generateResultsHTML(pages) {
  * @return {string}
  */
 function generatePageHTML(page) {
-  let html = '';
-  html += `<li>
+  return `<li>
       <a class="page" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
       <img src="${page.result.song_art_image_thumbnail_url}">
       <div class="page-text">
@@ -388,22 +387,9 @@ function generatePageHTML(page) {
           <div class="page-title">${page.result.title}</div>
           <div class="page-artist">${page.result.primary_artist.name}</div>
         </div>
-      `;
-  if (typeof page.result.stats.pageviews !== 'undefined') {
-    // eye icon from Genius.com
-    html += `<div class="page-views">
-        <svg class="eye" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 15.45"><path d="M11 2c4 0 7.26 3.85 8.6 5.72-1.34 1.87-4.6 5.73-8.6 5.73S3.74 9.61 2.4 7.73C3.74 5.86 7 2 11 2m0-2C4.45 0 0 7.73 0 7.73s4.45 7.73 11 7.73 11-7.73 11-7.73S17.55 0 11 0z"></path><path d="M11 5a2.73 2.73 0 1 1-2.73 2.73A2.73 2.73 0 0 1 11 5m0-2a4.73 4.73 0 1 0 4.73 4.73A4.73 4.73 0 0 0 11 3z"></path></svg>
-        ${page.result.stats.pageviews}
-        </div>
-        </div>
-        </a>
-        </li>`;
-  } else {
-    html += `</div>
-        </a>
-        </li>`;
-  }
-  return html;
+      </div>
+    </a>
+  </li>`;
 }
 
 /**

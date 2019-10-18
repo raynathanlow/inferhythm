@@ -97,14 +97,6 @@ ul {
 	margin-top: .125rem;
 }
 
-.page-views {
-	font-size: 0.75em;
-}
-
-.eye {
-	height: 0.7em;
-}
-
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } } 
 .fade-in {
 	opacity: 0;
