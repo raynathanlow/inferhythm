@@ -4,7 +4,9 @@ body {
   padding: 5rem;
   max-width: 50rem;
 	color: rgb(34, 34, 34);
-	background-color: #f7f7f7; }
+	background-color: #f7f7f7;
+  font-family: 'Lato', sans-serif;
+}
 
 button {
   padding: 10px;
