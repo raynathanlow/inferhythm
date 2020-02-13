@@ -1,5 +1,9 @@
-'use strict';
+"use strict";
 
-chrome.runtime.onInstalled.addListener(function() {
-  chrome.tabs.create({url: 'index.html'});
+const details = {
+  reason: "install"
+};
+
+chrome.runtime.onInstalled.addListener(function(details) {
+  chrome.tabs.create({ url: "index.html" });
 });
