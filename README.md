@@ -2,8 +2,7 @@
 Inferhythm is a browser extension that helps users find lyrics from the website
 Genius for the track they are currently listening to on Spotify.
 
-gif demo
-screenshot(s)? maybe like a 3 panel vertical thing (spotify -> extension -> genius)
+![](inferhythm-demo.gif)
 
 ## Usage
 A Spotify account is required to use Inferhythm.
