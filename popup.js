@@ -25,6 +25,8 @@ window.onload = async function() {
  * @return {undefined}
  */
 async function displayResults(accessToken, refreshToken, geniusToken) {
+  // Prevents displaying previous content for a split second
+  document.body.innerHTML = '';
 
   try {
     let track = await getTrack(accessToken);
@@ -361,35 +363,58 @@ function processPages(pages) {
 }
 
 /**
- * Generate HTML for all Genius pages
+ * Generate node for all Genius pages
  * @param  {array<object>} pages Genius page objects
- * @return {string}
+ * @return {array<object>} array of nodes
  */
 function generateResultsHTML(pages) {
-  let html = '';
+  let nodes = [];
   pages.forEach(function(page) {
-    html += generatePageHTML(page);
+    nodes.push(generatePageHTML(page));
   });
-  return html;
+  return nodes;
 }
 
 /**
- * Generate HTML for one Genius page
+ * Generate node for one Genius page
  * @param  {object} page Genius page object
- * @return {string}
+ * @return {object} node
  */
 function generatePageHTML(page) {
-  return `<li>
-      <a class="page" target="_blank" rel="noopener noreferrer" href="${page.result.url}">
-      <img src="${page.result.song_art_image_thumbnail_url}">
-      <div class="page-text">
-        <div>
-          <div class="page-title">${page.result.title}</div>
-          <div class="page-artist">${page.result.primary_artist.name}</div>
-        </div>
-      </div>
-    </a>
-  </li>`;
+  let item = document.createElement('li');
+
+  let anchor = document.createElement('a');
+  anchor.className = 'page';
+  anchor.target = '_blank';
+  anchor.rel = 'noopener noreferrer';
+  anchor.href = page.result.url;
+
+  item.appendChild(anchor);
+
+  let image = document.createElement('img');
+  image.src = page.result.song_art_image_thumbnail_url;
+
+  anchor.appendChild(image);
+
+  let pageText = document.createElement('div');
+  pageText.className = 'page-text';
+  let wrapperDiv = document.createElement('div');
+
+  anchor.appendChild(pageText);
+  pageText.appendChild(wrapperDiv);
+
+  let title = document.createElement('div');
+  title.className = 'page-title';
+  title.textContent = page.result.title;
+
+  let artists = document.createElement('div');
+  artists.className = 'page-artist';
+  artists.textContent = page.result.primary_artist.name;
+
+  wrapperDiv.appendChild(title);
+  wrapperDiv.appendChild(artists);
+
+  return item;
 }
 
 /**
@@ -443,12 +468,30 @@ function showLoadingMsg(show) {
  * @return {undefined}
  */
 function searchHTML(track, artistsStr) {
-  document.body.innerHTML = `<main id="search">
-      <h1>Searching...</h1>
-      <img class="search-img" src="${track.item.album.images[1].url}">
-      <p class="search-title">${track.item.name}</p>
-      <p class="search-artists">${artistsStr}</p>
-    </main>`;
+  let main = document.createElement('main');
+  main.id = 'search';
+  
+  let heading = document.createElement('h1');
+  heading.textContent = 'Searching...';
+
+  let image = document.createElement('img');
+  image.className = 'search-img';
+  image.src = track.item.album.images[1].url;
+
+  let title = document.createElement('p');
+  title.className = 'search-title';
+  title.textContent = track.item.name;
+
+  let artists = document.createElement('p');
+  artists.className = 'search-artists';
+  artists.textContent = artistsStr;
+
+  main.appendChild(heading);
+  main.appendChild(image);
+  main.appendChild(title);
+  main.appendChild(artists);
+
+  document.body.appendChild(main);
 }
 
 /**
@@ -456,12 +499,24 @@ function searchHTML(track, artistsStr) {
  * @return {undefined}
  */
 function resultsHTML(track, artistsStr, results) {
-  document.body.innerHTML = `<main id="results" class="fade-in">
-      <h1>Results</h1>
-      <ul>
-        ${results}
-      </ul>
-    </main>`;
+  document.body.innerHTML = '';
+
+  let main = document.createElement('main');
+  main.id = 'results';
+  main.className = 'fade-in';
+
+  let heading = document.createElement('h1');
+  heading.textContent = 'Results';
+
+  let list = document.createElement('ul');
+  results.forEach((result) => {
+    list.appendChild(result);
+  });
+
+  main.appendChild(heading);
+  main.appendChild(list);
+
+  document.body.appendChild(main);
 }
 
 /**
@@ -511,13 +566,39 @@ function errorHTML(errorMsg) {
 function googleLinks(trackTitle, trackArtists) {
   let track = trackTitle.replace(/ /g, '+');
   let artists = joinArtistNames(trackArtists, '+');
-  document.body.innerHTML += `<nav id="google-links">
-      <p>If results are unsatisfactory, here are links to find it on Google:</p>
-      <ul>
-        <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22Genius%22">Genius page</a></li>
-        <li><a class="link" target="_blank" rel="noopener noreferrer" href="http://www.google.com/search?q=${track}+${artists}+%22lyrics%22">Plain lyrics</a></li>
-      </ul>
-    </nav>`;
+
+  let nav = document.createElement('nav');
+  nav.id = 'google-links';
+
+  let p = document.createElement('p');
+  p.textContent = 'If results are unsatisfactory, here are links to find it on Google:';
+  nav.appendChild(p);
+
+  let list = document.createElement('ul');
+  nav.appendChild(list);
+  
+  let geniusPage = document.createElement('li');
+  let geniusLink= document.createElement('a');
+  geniusLink.className = 'link';
+  geniusLink.target = '_blank';
+  geniusLink.rel = 'noopener noreferrer';
+  geniusLink.href = `http://www.google.com/search?q=${track}+${artists}+%22Genius%22`;
+  geniusLink.textContent = 'Genius page';
+  geniusPage.appendChild(geniusLink);
+
+  let plainLyrics = document.createElement('li');
+  let plainLink = document.createElement('a');
+  plainLink.className = 'link';
+  plainLink.target = '_blank';
+  plainLink.rel = 'noopener noreferrer';
+  plainLink.href = `http://www.google.com/search?q=${track}+${artists}+%22lyrics%22`;
+  plainLink.textContent = 'Plain lyrics';
+  plainLyrics.appendChild(plainLink);
+
+  list.appendChild(geniusPage);
+  list.appendChild(plainLyrics);
+
+  document.body.appendChild(nav);
 }
 
 // module.exports = { displayResults, getTokens, getAccessToken, getRefreshToken, 
