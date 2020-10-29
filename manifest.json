@@ -20,11 +20,5 @@
     "48": "icon48.png",
     "128": "icon128.png" 
   },
-  "manifest_version": 2,
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "addon@example.com",
-      "strict_min_version": "57.0"
-    }
-  }
+  "manifest_version": 2
 }
