@@ -1,6 +1,6 @@
 {
   "name": "Inferhythm",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Get Genius lyrics for the track that's currently being played on Spotify.",
   "permissions": [
     "identity",
